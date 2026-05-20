@@ -1,8 +1,70 @@
 # This file describes the chessboard class
 import numpy as np
 
-# Storing the state of the chess board with square mapping defined as:
-# a1 = 0, b1 = 1, c1 = 2... h1 = 7, a2 = 8, b2 = 9, ... h8 = 63
-board = [0] * 64
+WHITE = 0
+BLACK = 1
 
-def get_square_name(int i):
+class Chessboard:
+    # Storing the state of the chess board essentially as a 64 character list
+    # ie board indices looks like
+    # 56 57 58 ... 63
+    # ...
+    # ...
+    # 8  9  10 ... 15 
+    # 0  1  2  ... 7
+    #
+    # Blank square: 0
+    # Pawn: 1
+    # Knight: 2
+    # Bishop: 3
+    # Rook: 4
+    # Queen: 5
+    # King: 6
+
+    def __init__(self, layout: list[int]):
+        if len(layout) != 64:
+            raise ValueError("ValueError: The requested layout does not have 64 squares.")
+        else:
+            self.squares = layout.copy()
+    
+    @classmethod
+    def empty(cls) -> "Chessboard":
+        squares = [0]*64
+        return cls(squares)
+    
+    @classmethod
+    def standard(cls) -> "Chessboard":
+        squares = [0]*64
+        squares[0:8] = [4, 2, 3, 5, 6, 3, 2, 4]
+        squares[8:16] = [1, 1, 1, 1, 1, 1,1, 1]
+        return cls(squares)
+
+    def print_board(self):
+        i = 0
+        for char in self.squares:
+            print(char, end="")
+            i += 1
+            if i >= 8:
+                i = 0
+                print()
+
+
+    @staticmethod
+    def get_square_name(i: int):
+        rank = i // 8 # Floor division returns row
+        row = i % 8 # Remainder returns column
+        return(rank, row)
+
+    def set_board_state(self, board: str):
+        self.squares = self.squares
+    
+
+# Test Script:
+board = Chessboard.standard()
+print(board.get_square_name(0))
+print(board.get_square_name(7))
+print(board.get_square_name(8))
+print(board.get_square_name(63))
+print(board.get_square_name(64))
+
+board.print_board()
