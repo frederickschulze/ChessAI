@@ -1,11 +1,18 @@
 # This file describes the chessboard class
 import numpy as np
-from stockfish import Stockfish
-
-stockfish = Stockfish(path="C:\Users\frede\Documents\Code Projects\ChessAI\engines\stockfish-5.2.0")
 
 WHITE = 0
 BLACK = 1
+NO_PASSANT = "-"
+EMPTY = 0
+PAWN = 1
+KNIGHT = 2
+BISHOP = 3
+ROOK = 4
+QUEEN = 5
+KING = 6
+PIECE_TO_CHAR = ".PNBRQK"
+
 
 class Chessboard:
     # Storing the state of the chess board essentially as a 64 character list
@@ -25,12 +32,40 @@ class Chessboard:
     # King: 6
     # WHITE: Positive, BLACK: Negative
 
-    def __init__(self, layout: list[int]):
-        if len(layout) != 64:
+    def __init__(self, layout: list[int] | None = None):
+        if layout is None: 
+            self.squares = [0] * 64
+        elif len(layout) != 64:
             raise ValueError("The requested layout does not have 64 squares.")
         else:
             self.squares = layout.copy()
-    
+        self.turn = WHITE
+        self.castling_rights = "KQkq"
+        self.en_passant = NO_PASSANT
+        self.half_move_clock = 0
+        self.full_move_number = 1
+        
+    def generate_FEN(self):
+        #example FEN: "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2")
+        FEN = []
+        blank_counter = 0
+        for i, square in enumerate(self.squares):
+            char = self.piece_to_char(square)
+            if char == ".":
+                blank_counter += 1
+            elif blank_counter > 0:
+                FEN.append(str(blank_counter))
+                FEN.append(char)
+                blank_counter = 0
+            else:
+                FEN.append(char)
+            if (i+1)%8 == 0:
+                if blank_counter>0: 
+                    FEN.append(str(blank_counter))
+                    blank_counter = 0
+                FEN.append("/")
+        return "".join(FEN).rstrip("/")
+
     @classmethod
     def empty(cls) -> "Chessboard":
         squares = [0]*64
@@ -41,8 +76,8 @@ class Chessboard:
         squares = [0]*64
         squares[0:8] = [4, 2, 3, 5, 6, 3, 2, 4]
         squares[8:16] = [1, 1, 1, 1, 1, 1,1, 1]
-        squares[Chessboard.coords_to_index("a7"):Chessboard.coords_to_index("h7")+1] = [1]*8
-        squares[Chessboard.coords_to_index("a8"):Chessboard.coords_to_index("h8")+1] = [4, 2, 3, 5, 6, 3, 2, 4]
+        squares[Chessboard.coords_to_index("a7"):Chessboard.coords_to_index("h7")+1] = [-1]*8 #just another way to define this
+        squares[Chessboard.coords_to_index("a8"):Chessboard.coords_to_index("h8")+1] = [-4, -2, -3, -5, -6, -3, -2, -4]
         return cls(squares)
 
     def print_board(self, flipped: bool = False):
@@ -57,6 +92,12 @@ class Chessboard:
                 i = 0
                 print()
     
+    @staticmethod
+    def piece_to_char(piece: int) -> str:
+        char = PIECE_TO_CHAR[abs(piece)]
+        if piece < 0: char = char.lower()
+        return char
+
     @staticmethod
     def flip_vertically(squares: list[int]) -> list[int]:
         if len(squares) != 64:
@@ -79,9 +120,10 @@ class Chessboard:
             self.squares[start_index] = value
 
     @staticmethod
-    def get_square_name(i: int):
+    def get_square_rankrow(i: int):
         rank = i // 8 # Floor division returns row
         row = i % 8 # Remainder returns column
+        
         return(rank, row)
 
     @staticmethod
@@ -108,15 +150,3 @@ class Chessboard:
     
 
 # Test Script:
-board = Chessboard.standard()
-print(board.get_square_name(0))
-print(board.get_square_name(7))
-print(board.get_square_name(8))
-print(board.get_square_name(63))
-print(board.get_square_name(64))
-
-board.set_square(1, "f4")
-
-board.print_board()
-print()
-board.print_board(True)
