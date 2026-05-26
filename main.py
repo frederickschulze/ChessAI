@@ -29,6 +29,7 @@ def main():
     print(f"FEN of stockfish object: {stockfish.get_fen_position()}")
     stockfish.make_moves_from_start(["e2e4", "e7e6"])
     print(f"stonkfish after moving: {stockfish.get_fen_position()}")
+    print(f"stonkfish best move now: {stockfish.get_best_move()}")
     
 
 if __name__ == "__main__":

@@ -30,7 +30,7 @@ class Chessboard:
     # Rook: 4
     # Queen: 5
     # King: 6
-    # WHITE: Positive, BLACK: Negative
+    # WHITE: Positive, BLACK: Negative   
 
     # makes a board with optional custom layout which is a list of 64 ints
     def __init__(self, layout: list[int] | None = None):
