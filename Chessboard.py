@@ -93,6 +93,10 @@ class Chessboard:
         return 0
 
     def valid_moves(self):
+        valid_moves = []
+        for square in board:
+            if self.turn == WHITE:
+                
         return 0
     
     def make_move(self):
