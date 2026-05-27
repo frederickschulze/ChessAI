@@ -84,24 +84,54 @@ class Chessboard:
                 FEN.append("/")
         
         FEN = "".join(FEN).rstrip("/")
-        print(FEN) #now it has the whole board state
+        #print(FEN) #now it has the whole board state
         FEN = FEN + f" {self.turn} {self.castling_rights} {self.en_passant_square} {self.halfmove_clock} {self.fullmove_number}"
-        print(FEN)
+        #print(FEN)
         return FEN
 
     def set_position_from_FEN(self):
         return 0
 
-    def valid_moves(self):
+    def generate_valid_moves(self):
+        pieces_that_can_moove = []
+        indexes_that_can_moove = []
         valid_moves = []
-        for square in board:
-            if self.turn == WHITE:
-                
-        return 0
+        for i, square in enumerate(self.squares):
+            if square == 0 or self.piece_color(square) != self.turn:
+                print(i, end=" ") #debugging
+            elif self.piece_color(square) == self.turn:
+                pieces_that_can_moove.append((self.index_to_coords(i), square)) #debugging
+                indexes_that_can_moove.append(i)
+                if square == 1: #pawn behavior
+                    if self.index_to_rank(i) == 2:
+                        print(f"\nWhite pawn hasn't moved on: {self.index_to_coords(i)}", end="")
+                    
+                elif i == 2 : #knight behavior
+                    continue
+                elif i == 3: #bishop behavior
+                    continue
+                elif i == 4: #rook behavior
+                    continue
+                elif i == 5: #queen behavior
+                    continue
+                elif i == 6: #king behavior
+                    continue
+        print() #debugging
+        print(pieces_that_can_moove)
+        #deprecated: for i in indexes_that_can_moove:
+
+        return valid_moves
     
     def make_move(self):
         return 0
 
+    @staticmethod
+    def piece_color(piece: int):
+        if piece > 0: return WHITE
+        elif piece < 0: return BLACK
+        elif piece ==0:raise ValueError("This is an empty square, not a piece")
+        else: raise ValueError("How the hek did this happen?")
+        return color
     
     # print the board to the terminal
     def print_board(self, flipped: bool = False):
@@ -146,19 +176,30 @@ class Chessboard:
 
     #gives rank and file indexed from 1
     @staticmethod
-    def get_square_rankfile(index: int):
-        if index < 0 or index > 63: 
-            raise ValueError("The index is outside of the expected range.")
-        rank_reversed = index // 8 # Floor division returns rank from top
-        rank = 8-rank_reversed
-        file = index % 8 + 1 # Remainder returns column
+    def index_to_rankfile(index: int):
+        rank = Chessboard.index_to_rank(index)
+        file = Chessboard.index_to_file(index) # Remainder returns column
         return(rank, file)
+    
+    @staticmethod #singular versions of above
+    def index_to_rank(index: int):
+        if index < 0 or index > 63: raise ValueError("The index is outside of the expected range.")
+        rank_reversed = index // 8
+        rank = 8 - rank_reversed
+        return rank
+
+    @staticmethod #singular versions of above
+    def index_to_file(index: int):
+        if index < 0 or index > 63:
+            raise ValueError("The index is outside of the expected range.")
+        file = index % 8 + 1
+        return file
 
     @staticmethod
     def index_to_coords(index: int):
         if index < 0 or index > 63: 
             raise ValueError("The index is outside of the expected range.")
-        rank, file = Chessboard.get_square_rankfile(index)
+        rank, file = Chessboard.index_to_rankfile(index)
         file_lookup = "abcdefgh"
         file_name = file_lookup[file-1]
         return file_name + str(rank)

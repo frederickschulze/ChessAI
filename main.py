@@ -8,7 +8,9 @@ def main():
     #stockfish = Stockfish(r"C:\Users\frede\Documents\Code Projects\ChessAI\engines\stockfish\stockfish-windows-x86-64-avx2.exe")
 
     board = Chessboard.standard()
-    print(board.get_square_rankfile(0))
+
+    #Testing coords and name conversions
+    '''print(board.get_square_rankfile(0))
     print(board.get_square_rankfile(7))
     print(board.get_square_rankfile(8))  
     print(board.get_square_rankfile(63))
@@ -17,7 +19,7 @@ def main():
     print(board.index_to_coords(7))
     print(board.index_to_coords(8))
     print(board.index_to_coords(56))
-    print(board.index_to_coords(63))
+    print(board.index_to_coords(63))'''
     
 
     #board.set_square(1, "f4")
@@ -25,12 +27,15 @@ def main():
     board.print_board(flipped = False)
     print()    
     FEN = board.generate_FEN()
-    print(f"FEN of my board object: {FEN}")
-    print(f"FEN of stockfish object: {stockfish.get_fen_position()}")
-    stockfish.make_moves_from_start(["e2e4", "e7e6"])
+    stockfish.make_moves_from_start(["e2e4", "e7e6", "d2d4", "d7d5"]) #
     print(f"stonkfish after moving: {stockfish.get_fen_position()}")
-    print(f"stonkfish best move now: {stockfish.get_best_move()}")
+    print(f"stonkfish best move now: {stockfish.get_best_move()}\n")
     
+    '''print(f"FEN of my board object: {FEN}")
+    print(f"FEN of stockfish object: {stockfish.get_fen_position()}")
+    '''
+    
+    board.generate_valid_moves()
 
 if __name__ == "__main__":
     main()
