@@ -1,5 +1,6 @@
 # This file describes the chessboard class
 import numpy as np
+from typing import NamedTuple
 
 WHITE = 'w'
 BLACK = 'b'
@@ -13,6 +14,11 @@ QUEEN = 5
 KING = 6
 PIECE_TO_CHAR = ".PNBRQK"
 
+class Move(NamedTuple):
+    start: int
+    end: int
+    flag: int = 0
+    promotion: int = 0
 
 class Chessboard:
     # Storing the state of the chess board essentially as a 64 character list
@@ -92,6 +98,7 @@ class Chessboard:
     def set_position_from_FEN(self):
         return 0
 
+    
     def generate_valid_moves(self):
         pieces_that_can_moove = []
         indexes_that_can_moove = []
@@ -104,9 +111,23 @@ class Chessboard:
                 indexes_that_can_moove.append(i)
                 if square == 1: #pawn behavior
                     if self.index_to_rank(i) == 2:
-                        print(f"\nWhite pawn hasn't moved on: {self.index_to_coords(i)}", end="")
-                    
-                elif i == 2 : #knight behavior
+                        print(f"White pawn hasn't moved on: {self.index_to_coords(i)}")
+                        if self.squares[i-8]==0:
+                            print(f"{i-8} Confirmed blank: {Chessboard.index_to_coords(i-8)}")
+                            move = Move(i, i-8, 0, 0)
+                            valid_moves.append(move)
+                            if self.squares[i-16]==0:
+                                print(f"{i-16} Confirmed blank: {Chessboard.index_to_coords(i-16)}")
+                                move = Move(i, i-16, 0, 0)
+                                valid_moves.append(move)
+                        # deal with captures, logic is wrong right now elif self.squares[]<0:
+                            print(f"{i-16} Capturable: {Chessboard.index_to_coords{i-16}}")
+                            move = Move(i, i-16, 1, 0)
+                            valid_moves.append(move)
+                            
+                                
+                        
+                elif i == 2 : #knight behaviors
                     continue
                 elif i == 3: #bishop behavior
                     continue
@@ -116,10 +137,10 @@ class Chessboard:
                     continue
                 elif i == 6: #king behavior
                     continue
-        print() #debugging
-        print(pieces_that_can_moove)
+        #print() #debugging
+        print(f"pieces that can move: {pieces_that_can_moove}")
         #deprecated: for i in indexes_that_can_moove:
-
+        print(f"Valid moves: {valid_moves}")
         return valid_moves
     
     def make_move(self):
