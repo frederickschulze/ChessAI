@@ -121,13 +121,23 @@ class Chessboard:
                                 move = Move(i, i-16, 0, 0)
                                 valid_moves.append(move)
                         # deal with captures, logic is wrong right now elif self.squares[]<0:
-                            print(f"{i-16} Capturable: {Chessboard.index_to_coords{i-16}}")
-                            move = Move(i, i-16, 1, 0)
-                            valid_moves.append(move)
-                            
+                    if self.index_to_rank(i-7) == (self.index_to_rank(i)-1): #lazy check to ensure attacked square is o   n board
+                        print(f"capturable square on {i-7}")
+                        if self.squares[i-7] != 0:
+                            print(f"Capturable piece on {i-7}")
+                            move = Move(i, i-7, 1, 0)
+                    if self.index_to_rank(i-9) == (self.index_to_rank(i)-1): #lazy check to ensure attacked square is on board
+                        print(f"capturable square on {i-9}")
+                        if self.squares[i-9] != 0:
+                            print(f"Capturable piece on {i-9}")
+                            move = Move(i, i-7, 1, 0)
+                           # print(f"{i-16}   Capturable: {Chessboard.index_to_coords{i-16}}")
+                           # move = Move(i, i-16, 1, 0)
+                           # valid_moves.append(move)
+                              
                                 
                         
-                elif i == 2 : #knight behaviors
+                elif i == 2 : #knight behaviors 
                     continue
                 elif i == 3: #bishop behavior
                     continue
@@ -142,7 +152,7 @@ class Chessboard:
         #deprecated: for i in indexes_that_can_moove:
         print(f"Valid moves: {valid_moves}")
         return valid_moves
-    
+      
     def make_move(self):
         return 0
 
