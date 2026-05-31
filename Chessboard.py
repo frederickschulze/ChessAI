@@ -2,9 +2,12 @@
 import numpy as np
 from typing import NamedTuple
 
+#Player turn constants
 WHITE = 'w'
 BLACK = 'b'
+#No en passant flag
 NO_PASSANT = "-"
+#Piece constants
 EMPTY = 0
 PAWN = 1
 KNIGHT = 2
@@ -12,7 +15,15 @@ BISHOP = 3
 ROOK = 4
 QUEEN = 5
 KING = 6
+#Converting piece integer to chars or back
 PIECE_TO_CHAR = ".PNBRQK"
+#move flags
+NORMAL = 0
+CAPTURE = 1
+CASTLE = 2
+EN_PASSANT = 3
+PROMOTION = 4
+
 
 class Move(NamedTuple):
     start: int
@@ -104,38 +115,56 @@ class Chessboard:
         indexes_that_can_moove = []
         valid_moves = []
         for i, square in enumerate(self.squares):
+            rank, file = self.index_to_rankfile(i)
             if square == 0 or self.piece_color(square) != self.turn:
                 print(i, end=" ") #debugging
+                continue
             elif self.piece_color(square) == self.turn:
                 pieces_that_can_moove.append((self.index_to_coords(i), square)) #debugging
                 indexes_that_can_moove.append(i)
+
                 if square == 1: #pawn behavior
+                    
+                    #checking one forward of pawn
+                    if self.squares[i-8]==0:
+                        print(f"{i-8} Confirmed blank: {self.index_to_coords(i-8)}")
+                        move = Move(i, i-8, NORMAL, 0)
+                        valid_moves.append(move)
+
+                    #if pawn on starting rank, check 2 forward
                     if self.index_to_rank(i) == 2:
                         print(f"White pawn hasn't moved on: {self.index_to_coords(i)}")
-                        if self.squares[i-8]==0:
-                            print(f"{i-8} Confirmed blank: {Chessboard.index_to_coords(i-8)}")
-                            move = Move(i, i-8, 0, 0)
+                        if self.squares[i-16]==0:
+                            print(f"{i-16} Confirmed blank: {self.index_to_coords(i-16)}")
+                            move = Move(i, i-16, NORMAL, 0)
                             valid_moves.append(move)
-                            if self.squares[i-16]==0:
-                                print(f"{i-16} Confirmed blank: {Chessboard.index_to_coords(i-16)}")
-                                move = Move(i, i-16, 0, 0)
-                                valid_moves.append(move)
-                        # deal with captures, logic is wrong right now elif self.squares[]<0:
-                    if self.index_to_rank(i-7) == (self.index_to_rank(i)-1): #lazy check to ensure attacked square is o   n board
+
+                            #Check for en passant
+                            check_left = i-17 #up 2, left 1
+                            check_right = i-15 #up 2, right 1
+                            for checksquare_index in [check_left, check_right]:
+                                checksquare = self.squares[checksquare_index]
+                                if self.index_to_rank(checksquare_index) == self.index_to_rank(i)+2: #then potential enemy is on board
+                                    if checksquare != 0:
+                                        if self.piece_color(checksquare) != self.turn:
+                                            #en passant opportunity?
+                                            continue #for now
+
+                    # Checking capture to right
+                    if self.index_to_rank(i-7) == (self.index_to_rank(i)-1): #lazy check to ensure attacked square is on board
                         print(f"capturable square on {i-7}")
-                        if self.squares[i-7] != 0:
+                        if self.squares[i-7] < 0:
                             print(f"Capturable piece on {i-7}")
-                            move = Move(i, i-7, 1, 0)
+                            move = Move(i, i-7, CAPTURE, 0)
+                            valid_moves.append(move)
+
+                    # Checking capture to left
                     if self.index_to_rank(i-9) == (self.index_to_rank(i)-1): #lazy check to ensure attacked square is on board
                         print(f"capturable square on {i-9}")
-                        if self.squares[i-9] != 0:
+                        if self.squares[i-9] < 0: 
                             print(f"Capturable piece on {i-9}")
-                            move = Move(i, i-7, 1, 0)
-                           # print(f"{i-16}   Capturable: {Chessboard.index_to_coords{i-16}}")
-                           # move = Move(i, i-16, 1, 0)
-                           # valid_moves.append(move)
-                              
-                                
+                            move = Move(i, i-9, CAPTURE, 0)
+                            valid_moves.append(move)
                         
                 elif i == 2 : #knight behaviors 
                     continue
@@ -160,7 +189,7 @@ class Chessboard:
     def piece_color(piece: int):
         if piece > 0: return WHITE
         elif piece < 0: return BLACK
-        elif piece ==0:raise ValueError("This is an empty square, not a piece")
+        elif piece == 0: raise ValueError("This is an empty square, not a piece")
         else: raise ValueError("How the hek did this happen?")
         return color
     
