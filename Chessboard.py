@@ -139,32 +139,37 @@ class Chessboard:
                             move = Move(i, i-16, NORMAL, 0)
                             valid_moves.append(move)
 
-                            #Check for en passant
-                            check_left = i-17 #up 2, left 1
-                            check_right = i-15 #up 2, right 1
-                            for checksquare_index in [check_left, check_right]:
-                                checksquare = self.squares[checksquare_index]
-                                if self.index_to_rank(checksquare_index) == self.index_to_rank(i)+2: #then potential enemy is on board
-                                    if checksquare != 0:
-                                        if self.piece_color(checksquare) != self.turn:
-                                            #en passant opportunity?
-                                            continue #for now
+                    '''#Check for en passant
+                            ep_attacker_left = i-17 #up 2, left 1
+                            ep_attacker_right = i-15 #up 2, right 1
+                            for attacker_index in [ep_attacker_left, ep_attacker_right]:
+                                attacker_pieceint = self.squares[attacker_index]
+                                if self.index_to_rank(attacker_index) == self.index_to_rank(i)+2: #then potential enemy is on board
+                                    if attacker_pieceint == -square: #then it should be a pawn of the opposite color
+
+                                        self.en_passant_square = self.'''
 
                     # Checking capture to right
-                    if self.index_to_rank(i-7) == (self.index_to_rank(i)-1): #lazy check to ensure attacked square is on board
-                        print(f"capturable square on {i-7}")
-                        if self.squares[i-7] < 0:
-                            print(f"Capturable piece on {i-7}")
-                            move = Move(i, i-7, CAPTURE, 0)
+                    right_capture = i-7
+                    if file != 8: #can't capture right on file 8
+                        print(f"capturable square on {right_capture}")
+                        if self.squares[right_capture] < 0:
+                            print(f"Capturable piece on {right_capture}")
+                            move = Move(i, right_capture, CAPTURE, 0)
                             valid_moves.append(move)
+                        elif self.squares[right_capture] == self.en_passant_square:
+                            valid_moves.append(Move(i, right_capture, EN_PASSANT, 0))
 
                     # Checking capture to left
-                    if self.index_to_rank(i-9) == (self.index_to_rank(i)-1): #lazy check to ensure attacked square is on board
-                        print(f"capturable square on {i-9}")
-                        if self.squares[i-9] < 0: 
-                            print(f"Capturable piece on {i-9}")
-                            move = Move(i, i-9, CAPTURE, 0)
+                    left_capture = i-9
+                    if file != 1: #can't capture left on file 1
+                        print(f"capturable square on {left_capture}")
+                        if self.squares[left_capture] < 0: 
+                            print(f"Capturable piece on {left_capture}")
+                            move = Move(i, left_capture, CAPTURE, 0)
                             valid_moves.append(move)
+                        elif self.squares[left_capture] == self.en_passant_square:
+                            valid_moves.append(Move(i, left_capture, EN_PASSANT, 0))
                         
                 elif i == 2 : #knight behaviors 
                     continue
@@ -176,6 +181,7 @@ class Chessboard:
                     continue
                 elif i == 6: #king behavior
                     continue
+
         #print() #debugging
         print(f"pieces that can move: {pieces_that_can_moove}")
         #deprecated: for i in indexes_that_can_moove:
