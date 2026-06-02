@@ -125,7 +125,7 @@ class Chessboard:
     def generate_valid_moves(self):
         print0 = False
         print1 = True
-        print_moves = False
+        print_moves = True
         pieces_that_can_moove = []
         indexes_that_can_moove = []
         valid_moves = []
@@ -177,12 +177,21 @@ class Chessboard:
                     if print1: print(f"It's {self.turn}'s turn")
                     if print1: print(f"The piece in question is: {self.piece_color(square)}") 
                     knight_move_deltas = [(2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2), (1, 2)]
-                    for delta in knight_move_deltas:
+                    #knight_move_deltas_index = [-15, -17, -6, 10, 17, 15, 6, -10]
+
+                    for delta in knight_move_deltas: #checking each final move position
                         endrank, endfile = (rank + delta[0], file + delta[1])
-                        if 1<=endrank<=8 and 1<=endfile<=8:
-                            if print1: print(f"Start pos: {rank},{file},{self.rankfile_to_coords((rank, file))},"
-                                             f"moves to {endrank},{endfile},{self.rankfile_to_coords((endrank, endfile))}")
-                    continue
+                        if 1<=endrank<=8 and 1<=endfile<=8: #checking the ones that are within board boundaries
+                            if print1: print("Knight move stays on board with:")
+                            if print1: print(f"Start pos: ({rank},{file},{self.rankfile_to_coords((rank, file))}) "
+                                             f"moves to ({endrank},{endfile},{self.rankfile_to_coords((endrank, endfile))})")
+                                
+                            knight_move_index_delta = -8*delta[0] + delta[1]
+                            finalIndex = i + knight_move_index_delta
+                            if self.squares[finalIndex] == 0:
+                                valid_moves.append(Move(i, finalIndex, 0, 0))
+                            elif self.squares[finalIndex] < 0:
+                                valid_moves.append(Move(i, finalIndex, 1, 0))
                 elif square == 3: #bishop behavior  
                     continue
                 elif square == 4: #rook behavior
@@ -194,9 +203,9 @@ class Chessboard:
                 
 
         #print() #debugging
-        print(f"pieces that can move: {pieces_that_can_moove}")
+        #print(f"pieces that can move: {pieces_that_can_moove}")
         #deprecated: for i in indexes_that_can_moove:
-        print(f"Valid moves: {valid_moves}")
+        #print(f"Valid moves: {valid_moves}")
         if print_moves:
             for move in valid_moves:
                 print(f"Piece can move from {self.index_to_coords(move[0])} to {self.index_to_coords(move[1])} with move type: {move[2]}")
