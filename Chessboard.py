@@ -104,6 +104,7 @@ class Chessboard:
         FEN = "".join(FEN).rstrip("/")
         #print(FEN) #now it has the whole board state
         en_passant_FEN = "-" if self.en_passant_square == NO_PASSANT else self.index_to_coords(self.en_passant_square)
+        castling_rights_FEN = self.castling_rights if self.castling_rights else "-"
         FEN = FEN + f" {self.turn} {self.castling_rights} {en_passant_FEN} {self.halfmove_clock} {self.fullmove_number}"
         #print(FEN)
         return FEN
@@ -124,7 +125,7 @@ class Chessboard:
 
     def generate_valid_moves(self):
         print0 = False
-        print1 = True
+        print1 = False
         print_moves = True
         pieces_that_can_moove = []
         indexes_that_can_moove = []
@@ -135,16 +136,23 @@ class Chessboard:
             if square == 0 or self.piece_color(square) != self.turn:
                 if print0: print(i, end=" ") #debugging
                 continue
-
+            
             elif self.piece_color(square) == self.turn:
                 pieces_that_can_moove.append((self.index_to_coords(i), square)) #debugging
                 indexes_that_can_moove.append(i)
 
                 if square == 1: #white pawn behavior
                     #checking one forward of pawn
-                    if self.squares[i-8] == 0:
-                        if print0: print(f"{i-8} Confirmed blank: {self.index_to_coords(i-8)}")
-                        valid_moves.append(Move(i, i-8, NORMAL, 0))
+                    target_square = i-8
+                    if self.index_to_rank(target_square) != rank + 1: raise ValueError("Pawn did not move correctly???")
+                    if rank == 8: raise ValueError("How do you have a pawn on the 8th rank???")                    
+                    if self.squares[target_square] == 0:
+                        if self.index_to_rank(target_square) != 8:
+                            if print0: print(f"{target_square} Confirmed blank: {self.index_to_coords(i-8)}")
+                            valid_moves.append(Move(i, target_square, NORMAL, 0))
+                        else:
+                            if print0: print(f"{target_square} Confirmed blank: {self.index_to_coords(i-8)}")
+                            valid_moves.append(Move(i, target_square, PROMOTION, 0))
                         #if pawn on starting rank and the first square was clear, check 2 forward
                         if rank == 2:
                             if print0: print(f"White pawn hasn't moved on: {self.index_to_coords(i)}")
@@ -179,21 +187,44 @@ class Chessboard:
                     knight_move_deltas = [(2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2), (1, 2)]
                     #knight_move_deltas_index = [-15, -17, -6, 10, 17, 15, 6, -10]
 
-                    for delta in knight_move_deltas: #checking each final move position
+                    for delta in knight_move_deltas: #finding final move positions and checking if on board
                         endrank, endfile = (rank + delta[0], file + delta[1])
-                        if 1<=endrank<=8 and 1<=endfile<=8: #checking the ones that are within board boundaries
+                        if 1<=endrank<=8 and 1<=endfile<=8: 
                             if print1: print("Knight move stays on board with:")
                             if print1: print(f"Start pos: ({rank},{file},{self.rankfile_to_coords((rank, file))}) "
                                              f"moves to ({endrank},{endfile},{self.rankfile_to_coords((endrank, endfile))})")
                                 
-                            knight_move_index_delta = -8*delta[0] + delta[1]
+                            knight_move_index_delta = -8*delta[0] + delta[1] # convert from rank and file to index 
                             finalIndex = i + knight_move_index_delta
                             if self.squares[finalIndex] == 0:
                                 valid_moves.append(Move(i, finalIndex, 0, 0))
                             elif self.squares[finalIndex] < 0:
                                 valid_moves.append(Move(i, finalIndex, 1, 0))
-                elif square == 3: #bishop behavior  
-                    continue
+                elif square == 3: #bishop behavior
+                    #check northwest squares
+                    directions = [(1,1), (1,-1), (-1,-1), (-1,1)]
+                    for delta in directions:
+                        hit = False
+                        cur_rank = rank
+                        cur_file = file
+                        #valid_bishop_indices = []
+                        while not hit: 
+                            #rank and file variables
+                            new_rank = cur_rank + delta[0]
+                            new_file = cur_file + delta[1]
+                            if 1<=new_rank<=8 and 1<=new_file<=8: 
+                                valid_index = self.rankfile_to_index(new_rank, new_file)
+                                if self.squares[valid_index] > 0:
+                                    hit = True
+                                if self.squares[valid_index] == 0:
+                                    valid_moves.append(Move(i, valid_index, NORMAL, 0))
+                                    cur_rank = new_rank
+                                    cur_file = new_file
+                                elif self.squares[valid_index] < 0:
+                                    valid_moves.append(Move(i, valid_index, CAPTURE, 0))
+                                    hit = True
+                            else: #the board limits were reached
+                                hit = True  
                 elif square == 4: #rook behavior
                     continue
                 elif square == 5: #queen behavior
@@ -208,7 +239,8 @@ class Chessboard:
         #print(f"Valid moves: {valid_moves}")
         if print_moves:
             for move in valid_moves:
-                print(f"Piece can move from {self.index_to_coords(move[0])} to {self.index_to_coords(move[1])} with move type: {move[2]}")
+                print(f"Piece {self.piece_to_char(self.squares[move[0]])} can move from "
+                      f"{self.index_to_coords(move[0])} to {self.index_to_coords(move[1])} with move type: {move[2]}")
 
         return valid_moves
       
@@ -299,7 +331,7 @@ class Chessboard:
         # order goes a8, b8, c8, ... h8, a7, b7, ... g1, h1. 
         fileNames = "abcdefgh"
         rankNames = "87654321"
-        
+
         # input check
         if (not isinstance(coords, str)
             or len(coords) != 2
@@ -309,9 +341,14 @@ class Chessboard:
         
         fileNum = fileNames.index(coords[0])
         rankNum = rankNames.index(coords[1])
-
         overall_index = 8*(rankNum)+fileNum
         return overall_index
+    
+    @staticmethod
+    def rankfile_to_index(rank: int, file: int) -> int:
+        if not (1 <= rank <= 8 and 1 <= file <= 8): raise ValueError("Rank and file must both be in the range 1 to 8.")
+        index = 8*(8 - rank) + (file - 1)
+        return index
     
     @staticmethod
     def rankfile_to_coords(rankfile: tuple) -> str:
