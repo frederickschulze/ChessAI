@@ -51,18 +51,21 @@ class Chessboard:
     # WHITE: Positive, BLACK: Negative   
 
     # makes a board with optional custom layout which is a list of 64 ints
-    def __init__(self, layout: list[int] | None = None):
+    def __init__(self, layout: list[int] | None = None, 
+                 turn: str = WHITE, castling_rights: str = "KQkq",
+                 en_passant_square: int = NO_PASSANT, 
+                 halfmove_clock: int = 0, fullmove_number: int = 1):
         if layout is None: 
             self.squares = [0] * 64
         elif len(layout) != 64:
             raise ValueError("The requested layout does not have 64 squares.")
         else:
             self.squares = layout.copy()
-        self.turn = WHITE
-        self.castling_rights = "KQkq"
-        self.en_passant_square = NO_PASSANT   
-        self.halfmove_clock = 0
-        self.fullmove_number = 1
+        self.turn = turn
+        self.castling_rights = castling_rights
+        self.en_passant_square = en_passant_square   
+        self.halfmove_clock = halfmove_clock
+        self.fullmove_number = fullmove_number
 
     # makes an empty chessboard
     @classmethod
@@ -79,7 +82,39 @@ class Chessboard:
         squares[Chessboard.coords_to_index("a2"):Chessboard.coords_to_index("h2")+1] = [1]*8 #just making use of my coords_to_index function
         squares[Chessboard.coords_to_index("a1"):Chessboard.coords_to_index("h1")+1] = [4, 2, 3, 5, 6, 3, 2, 4]
         return cls(squares)
+    
+    @classmethod 
+    def board_from_FEN(cls) -> "Chessboard":
+        squares = [0]*64
+        return cls(squares)
 
+    @staticmethod
+    def get_FEN_squares(FEN: str) -> list[int]:
+    #example FEN: "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2")
+        FEN_squares = FEN.split()[0]
+        squareList = [0] * 64
+        square_index = 0
+        for letter in FEN_squares:
+            if letter.upper() in ".PNBRQK":
+                num = Chessboard.char_to_int(letter)
+                squareList[square_index] = num
+                square_index += 1
+                continue
+            elif letter == '/': #debugging check for now that will not be needed later
+                if square_index % 8 != 0:
+                    raise ValueError("You're calculating this wrong")
+                continue
+            elif letter.isdigit():
+                square_index += int(letter)
+            
+
+        return squareList
+
+    @staticmethod
+    def set_position_from_FEN(self):
+    #example FEN: "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2")
+        return 0
+    
     # generate an FEN from the current board state
     def generate_FEN(self):
         #example FEN: "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2")
@@ -95,7 +130,7 @@ class Chessboard:
                 blank_counter = 0
             else:
                 FEN.append(char)
-            if (i+1)%8 == 0:
+            if (i+1) % 8 == 0:
                 if blank_counter>0: 
                     FEN.append(str(blank_counter))
                     blank_counter = 0
@@ -108,20 +143,6 @@ class Chessboard:
         FEN = FEN + f" {self.turn} {self.castling_rights} {en_passant_FEN} {self.halfmove_clock} {self.fullmove_number}"
         #print(FEN)
         return FEN
-
-    def set_position_from_FEN(self):
-        return 0
-
-    '''#Check for en passant
-        ep_attacker_left = i-17 #up 2, left 1
-        ep_attacker_right = i-15 #up 2, right 1
-        for attacker_index in [ep_attacker_left, ep_attacker_right]:
-            attacker_pieceint = self.squares[attacker_index]
-            if self.index_to_rank(attacker_index) == self.index_to_rank(i)+2: #then potential enemy is on board
-                if attacker_pieceint == -square: #then it should be a pawn of the opposite color
-
-                    self.en_passant_square = self.''' 
-
 
     def generate_valid_moves(self):
         print0 = False
@@ -171,7 +192,6 @@ class Chessboard:
                             valid_moves.append(Move(i, right_capture, CAPTURE, 0))
                         elif right_capture == self.en_passant_square:
                             valid_moves.append(Move(i, right_capture, EN_PASSANT, 0))
-
                     # Checking capture to left
                     left_capture = i-9
                     if file != 1: #can't capture left on file 1
@@ -182,7 +202,7 @@ class Chessboard:
                         elif left_capture == self.en_passant_square:
                             valid_moves.append(Move(i, left_capture, EN_PASSANT, 0))
                 
-                # WHITE KNIGHT BEHAVIOR
+                # WHITE KNIGHT BEHAVIOR (nice guy)
                 elif square == 2 : 
                     if print1: print(f"It's {self.turn}'s turn")
                     if print1: print(f"The piece in question is: {self.piece_color(square)}") 
@@ -282,13 +302,15 @@ class Chessboard:
                             else: #the board limits were reached
                                 hit = True  
 
-                elif square == 6: #king behavior
+                # WHITE KING BEHAVIOR
+                elif square == 6: 
                     directions = [(1,1), (1,-1), (-1,-1), (-1,1), (0,1), (1,0), (0,-1), (-1,0)]
                     for delta in directions:
                         cur_rank = rank
                         cur_file = file
                         new_rank = cur_rank + delta[0]
                         new_file = cur_file + delta[1]
+
                         if 1<=new_rank<=8 and 1<=new_file<=8: # ensure new square is on board
                             valid_index = self.rankfile_to_index(new_rank, new_file)
                             if self.squares[valid_index] > 0:
@@ -302,9 +324,7 @@ class Chessboard:
                                 hit = True  
                         else: #the board limits were reached
                             hit = True  
-                    continue
                 
-
         #print() #debugging
         #print(f"pieces that can move: {pieces_that_can_moove}")
         #deprecated: for i in indexes_that_can_moove:
@@ -346,6 +366,15 @@ class Chessboard:
         char = PIECE_TO_CHAR[abs(piece)]
         if piece < 0: char = char.lower()
         return char
+    
+    @staticmethod
+    def char_to_int(char: str) -> int:
+        #PIECE_TO_CHAR = ".PNBRQK"
+        if char.upper() not in PIECE_TO_CHAR:
+            raise ValueError("The input character is not in PIECE_TO_CHAR (.PNBRQK)")
+        piece_integer = PIECE_TO_CHAR.index(char.upper())
+        if char.islower(): piece_integer = -piece_integer
+        return piece_integer
 
     @staticmethod
     def flip_vertically(squares: list[int]) -> list[int]:
