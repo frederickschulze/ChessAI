@@ -2,7 +2,7 @@
 import numpy as np
 from typing import NamedTuple
 
-#Player turn constants
+#Player's turn constants
 WHITE = 'w'
 BLACK = 'b'
 #No en passant flag
@@ -84,33 +84,65 @@ class Chessboard:
         return cls(squares)
     
     @classmethod 
-    def board_from_FEN(cls) -> "Chessboard":
-        squares = [0]*64
-        return cls(squares)
+    def from_FEN(cls, FEN: str) -> "Chessboard":
+        #example FEN: "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2")
+        squares = cls.get_FEN_squares(FEN)
+        turn_fromFEN = FEN.split(" ")[1]
+        castling_rights_fromFEN = FEN.split(" ")[2]
+        en_passant_square_fromFEN = Chessboard.get_FEN_en_passant(FEN)
+        halfmove_clock_fromFEN = int(FEN.split(" ")[4])
+        fullmove_number_fromFEN = int(FEN.split(" ")[5])
+
+        return cls(squares, turn_fromFEN, castling_rights_fromFEN, 
+                   en_passant_square_fromFEN, halfmove_clock_fromFEN, fullmove_number_fromFEN)
 
     @staticmethod
     def get_FEN_squares(FEN: str) -> list[int]:
     #example FEN: "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2")
-        FEN_squares = FEN.split()[0]
+        FEN_squares = FEN.split(" ")[0] #returns just the board portion
         squareList = [0] * 64
         square_index = 0
         for letter in FEN_squares:
-            if letter.upper() in ".PNBRQK":
+            if letter.upper() in "PNBRQK":
                 num = Chessboard.char_to_int(letter)
                 squareList[square_index] = num
                 square_index += 1
-                continue
-            elif letter == '/': #debugging check for now that will not be needed later
-                if square_index % 8 != 0:
-                    raise ValueError("You're calculating this wrong")
-                continue
             elif letter.isdigit():
                 square_index += int(letter)
-            
 
+            elif letter == '/': #debugging check for now that will not be needed later
+                if square_index % 8 != 0: raise ValueError("You're calculating this wrong")
+            else: raise ValueError(f"Unexpected FEN character: {letter}")
+        if square_index != 64: raise ValueError("Did not receive the expected amount of squares")
         return squareList
 
+    #bunch of not very-useful helper functions
     @staticmethod
+    def get_FEN_turn(FEN: str) -> str:
+    #example FEN: "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2")
+        turn_fromFEN = FEN.split(" ")[1]
+        return turn_fromFEN
+    @staticmethod
+    def get_FEN_castling_rights(FEN: str) -> str:
+        castling_rights_from_FEN = FEN.split(" ")[2]
+        return castling_rights_from_FEN
+    @staticmethod # this might be the most useful helper function
+    def get_FEN_en_passant(FEN: str) -> int:
+        en_passant_from_FEN_coords = FEN.split(" ")[3]
+        if en_passant_from_FEN_coords == "-": return NO_PASSANT
+        else: en_passant_from_FEN_index = Chessboard.coords_to_index(en_passant_from_FEN_coords)
+        return en_passant_from_FEN_index
+    @staticmethod
+    def get_FEN_halfmove_clock(FEN: str) -> int:
+        halfmove_clock_from_FEN = FEN.split(" ")[4]
+        halfmove_clock_from_FEN = int(halfmove_clock_from_FEN)
+        return halfmove_clock_from_FEN
+    @staticmethod
+    def get_FEN_fullmove_number(FEN: str) -> int:
+        fullmove_number_from_FEN = FEN.split(" ")[5]
+        fullmove_number_from_FEN = int(fullmove_number_from_FEN)
+        return fullmove_number_from_FEN
+
     def set_position_from_FEN(self):
     #example FEN: "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2")
         return 0
