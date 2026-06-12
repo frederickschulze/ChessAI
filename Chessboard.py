@@ -24,6 +24,7 @@ DOUBLE_PAWN = 2
 CASTLE = 3
 EN_PASSANT = 4
 PROMOTION = 5
+PROMOTION_CAPTURE = 6
 
 
 class Move(NamedTuple):
@@ -89,7 +90,7 @@ class Chessboard:
         squares = cls.get_FEN_squares(FEN)
         turn_fromFEN = FEN.split(" ")[1]
         castling_rights_fromFEN = FEN.split(" ")[2]
-        en_passant_square_fromFEN = Chessboard.get_FEN_en_passant(FEN)
+        en_passant_square_fromFEN = cls.get_FEN_en_passant(FEN)
         halfmove_clock_fromFEN = int(FEN.split(" ")[4])
         fullmove_number_fromFEN = int(FEN.split(" ")[5])
 
@@ -125,6 +126,7 @@ class Chessboard:
     @staticmethod
     def get_FEN_castling_rights(FEN: str) -> str:
         castling_rights_from_FEN = FEN.split(" ")[2]
+        if castling_rights_from_FEN == "-": castling_rights_from_FEN = ""
         return castling_rights_from_FEN
     @staticmethod # this might be the most useful helper function
     def get_FEN_en_passant(FEN: str) -> int:
@@ -172,7 +174,7 @@ class Chessboard:
         #print(FEN) #now it has the whole board state
         en_passant_FEN = "-" if self.en_passant_square == NO_PASSANT else self.index_to_coords(self.en_passant_square)
         castling_rights_FEN = self.castling_rights if self.castling_rights else "-"
-        FEN = FEN + f" {self.turn} {self.castling_rights} {en_passant_FEN} {self.halfmove_clock} {self.fullmove_number}"
+        FEN = FEN + f" {self.turn} {castling_rights_FEN} {en_passant_FEN} {self.halfmove_clock} {self.fullmove_number}"
         #print(FEN)
         return FEN
 
@@ -180,192 +182,204 @@ class Chessboard:
         print0 = False
         print1 = False
         print_moves = True
-        pieces_that_can_moove = []
-        indexes_that_can_moove = []
         valid_moves = []
+
         #Test en passant self.en_passant_square = self.coords_to_index("e3")
         for i, square in enumerate(self.squares):
-            rank, file = self.index_to_rankfile(i)
-            if square == 0 or self.piece_color(square) != self.turn:
+            if square == 0:
                 if print0: print(i, end=" ") #debugging
                 continue
-            
-            elif self.piece_color(square) == self.turn:
-                pieces_that_can_moove.append((self.index_to_coords(i), square)) #debugging
-                indexes_that_can_moove.append(i)
+            current_piece_color = self.piece_color(square)
+            if current_piece_color != self.turn:
+                if print0: print(i, end=" ") #debugging
+                continue
 
-                # WHITE PAWN BEHAVIOR
-                if square == 1: #white pawn behavior
-                    #checking one forward of pawn
-                    target_square = i-8
-                    if self.index_to_rank(target_square) != rank + 1: raise ValueError("Pawn did not move correctly???")
-                    if rank == 8: raise ValueError("How do you have a pawn on the 8th rank???")                    
-                    if self.squares[target_square] == 0:
-                        if self.index_to_rank(target_square) != 8:
-                            if print0: print(f"{target_square} Confirmed blank: {self.index_to_coords(i-8)}")
-                            valid_moves.append(Move(i, target_square, NORMAL, 0))
-                        else:
-                            if print0: print(f"{target_square} Confirmed blank: {self.index_to_coords(i-8)}")
-                            valid_moves.append(Move(i, target_square, PROMOTION, 0))
-                        #if pawn on starting rank and the first square was clear, check 2 forward
-                        if rank == 2:
-                            if print0: print(f"White pawn hasn't moved on: {self.index_to_coords(i)}")
-                            if self.squares[i-16]==0:
-                                if print0: print(f"{i-16} Confirmed blank: {self.index_to_coords(i-16)}")
-                                move = Move(i, i-16, DOUBLE_PAWN, 0)
-                                valid_moves.append(move)
+            rank, file = self.index_to_rankfile(i)
 
-                    # Checking capture to right
-                    right_capture = i-7
-                    if file != 8: #can't capture right on file 8
-                        if print0: print(f"capturable square on {right_capture}")
-                        if self.squares[right_capture] < 0:
-                            if print0: print(f"Capturable piece on {right_capture}")
-                            valid_moves.append(Move(i, right_capture, CAPTURE, 0))
-                        elif right_capture == self.en_passant_square:
-                            valid_moves.append(Move(i, right_capture, EN_PASSANT, 0))
-                    # Checking capture to left
-                    left_capture = i-9
-                    if file != 1: #can't capture left on file 1
-                        if print0: print(f"capturable square on {left_capture}")
-                        if self.squares[left_capture] < 0: 
-                            if print0: print(f"Capturable piece on {left_capture}")
-                            valid_moves.append(Move(i, left_capture, CAPTURE, 0))
-                        elif left_capture == self.en_passant_square:
-                            valid_moves.append(Move(i, left_capture, EN_PASSANT, 0))
-                
-                # WHITE KNIGHT BEHAVIOR (nice guy)
-                elif square == 2 : 
-                    if print1: print(f"It's {self.turn}'s turn")
-                    if print1: print(f"The piece in question is: {self.piece_color(square)}") 
-                    knight_move_deltas = [(2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2), (1, 2)]
-                    #knight_move_deltas_index = [-15, -17, -6, 10, 17, 15, 6, -10]
+            # PAWN BEHAVIOR
+            if abs(square) == PAWN: #white pawn behavior
+                #checking one forward of pawn
+                if current_piece_color == WHITE: one_forward_square = i-8
+                elif current_piece_color == BLACK: one_forward_square = i+8
+                else: raise ValueError("The piece color is not working")
 
-                    for delta in knight_move_deltas: #finding final move positions and checking if on board
-                        endrank, endfile = (rank + delta[0], file + delta[1])
-                        if 1<=endrank<=8 and 1<=endfile<=8: 
-                            if print1: print("Knight move stays on board with:")
-                            if print1: print(f"Start pos: ({rank},{file},{self.rankfile_to_coords((rank, file))}) "
-                                             f"moves to ({endrank},{endfile},{self.rankfile_to_coords((endrank, endfile))})")
-                                
-                            knight_move_index_delta = -8*delta[0] + delta[1] # convert from rank and file to index 
-                            finalIndex = i + knight_move_index_delta
-                            if self.squares[finalIndex] == 0:
-                                valid_moves.append(Move(i, finalIndex, 0, 0))
-                            elif self.squares[finalIndex] < 0:
-                                valid_moves.append(Move(i, finalIndex, 1, 0))
+                #if self.index_to_rank(target_square) != rank + 1: raise ValueError("Pawn did not move correctly???")
+                if current_piece_color == WHITE and rank == 8: raise ValueError("You shouldn't have a pawn on this rank!!!")
+                elif current_piece_color == BLACK and rank == 1: raise ValueError("You shouldn't have a pawn on this rank!!!")                    
+                if self.squares[one_forward_square] == 0:
+                    if (current_piece_color == WHITE and rank == 7) or (current_piece_color == BLACK and rank == 2):
+                        if print0: print(f"{one_forward_square} Confirmed blank promotion: {self.index_to_coords(one_forward_square)}")
+                        for promotional_piece in [KNIGHT, BISHOP, ROOK, QUEEN]:
+                            valid_moves.append(Move(i, one_forward_square, PROMOTION, promotional_piece))
+                    else:
+                        valid_moves.append(Move(i, one_forward_square, NORMAL, 0))
+                    #if pawn on starting rank and the first square was clear, check 2 forward
+                    if (current_piece_color == WHITE and rank == 2) or (current_piece_color == BLACK and rank == 7):
+                        if print0: print(f"White pawn hasn't moved on: {self.index_to_coords(i)}")
+                        two_forward_square = i-16 if current_piece_color == WHITE else i + 16
+                        if self.squares[two_forward_square] == 0:
+                            if print0: print(f"{two_forward_square} Confirmed blank: {self.index_to_coords(two_forward_square)}")
+                            valid_moves.append(Move(i, two_forward_square, DOUBLE_PAWN, 0))
 
-                # BISHOP BEHAVIOR
-                elif square == 3: 
-                    #check northwest squares
-                    directions = [(1,1), (1,-1), (-1,-1), (-1,1)]
-                    for delta in directions:
-                        hit = False
-                        cur_rank = rank
-                        cur_file = file
-                        #valid_bishop_indices = []
-                        while not hit: 
-                            #rank and file variables
-                            new_rank = cur_rank + delta[0]
-                            new_file = cur_file + delta[1]
-                            if 1<=new_rank<=8 and 1<=new_file<=8: #limits within board
-                                valid_index = self.rankfile_to_index(new_rank, new_file)
-                                if self.squares[valid_index] > 0:
-                                    hit = True
-                                elif self.squares[valid_index] == 0:
-                                    valid_moves.append(Move(i, valid_index, NORMAL, 0))
-                                    cur_rank = new_rank
-                                    cur_file = new_file
-                                elif self.squares[valid_index] < 0:
-                                    valid_moves.append(Move(i, valid_index, CAPTURE, 0))
-                                    hit = True  
-                            else: #the board limits were reached
-                                hit = True  
+                # Checking captures to right and left
+                plusfile_capture = i-7 if current_piece_color == WHITE else i+9 #assumes piece is black if not white
+                negfile_capture = i-9 if current_piece_color == WHITE else i+7 
+                potential_captures = []
+                if file != 8: potential_captures.append(plusfile_capture)
+                if file != 1: potential_captures.append(negfile_capture)
 
-                #WHITE ROOK BEHAVIOR
-                elif square == 4: #rook behavior
-                    directions = [(0,1), (1,0), (0,-1), (-1,0)]
-                    for delta in directions:
-                        hit = False
-                        cur_rank = rank
-                        cur_file = file
-                        #valid_bishop_indices = []
-                        while not hit: 
-                            #rank and file variables
-                            new_rank = cur_rank + delta[0]
-                            new_file = cur_file + delta[1]
-                            if 1<=new_rank<=8 and 1<=new_file<=8: #limits within board
-                                valid_index = self.rankfile_to_index(new_rank, new_file)
-                                if self.squares[valid_index] > 0:
-                                    hit = True
-                                elif self.squares[valid_index] == 0:
-                                    valid_moves.append(Move(i, valid_index, NORMAL, 0))
-                                    cur_rank = new_rank
-                                    cur_file = new_file
-                                elif self.squares[valid_index] < 0:
-                                    valid_moves.append(Move(i, valid_index, CAPTURE, 0))
-                                    hit = True  
-                            else: #the board limits were reached
-                                hit = True  
+                for capture_index in potential_captures:
+                    if print0: print(f"capturable square on {capture_index}")
+                    if self.squares[capture_index] != 0: 
+                        if self.piece_color(self.squares[capture_index]) != current_piece_color:
+                            if print0: print(f"Capturable piece on {capture_index}")
+                            if (current_piece_color == WHITE and rank == 7) or (current_piece_color == BLACK and rank == 2):
+                                for promotional_piece in [KNIGHT, BISHOP, ROOK, QUEEN]:
+                                    valid_moves.append(Move(i, capture_index, PROMOTION_CAPTURE, promotional_piece))
+                            else:
+                                valid_moves.append(Move(i, capture_index, CAPTURE, 0))
+                    elif capture_index == self.en_passant_square:
+                        valid_moves.append(Move(i, capture_index, EN_PASSANT, 0))
 
-                #WHITE QUEEN BEHVAIOR
-                elif square == 5: 
-                    directions = [(1,1), (1,-1), (-1,-1), (-1,1), (0,1), (1,0), (0,-1), (-1,0)]
-                    for delta in directions:
-                        hit = False
-                        cur_rank = rank
-                        cur_file = file
-                        #valid_bishop_indices = []
-                        while not hit: 
-                            #rank and file variables
-                            new_rank = cur_rank + delta[0]
-                            new_file = cur_file + delta[1]
-                            if 1<=new_rank<=8 and 1<=new_file<=8: #limits within board
-                                valid_index = self.rankfile_to_index(new_rank, new_file)
-                                if self.squares[valid_index] > 0:
-                                    hit = True
-                                elif self.squares[valid_index] == 0:
-                                    valid_moves.append(Move(i, valid_index, NORMAL, 0))
-                                    cur_rank = new_rank
-                                    cur_file = new_file
-                                elif self.squares[valid_index] < 0:
-                                    valid_moves.append(Move(i, valid_index, CAPTURE, 0))
-                                    hit = True  
-                            else: #the board limits were reached
-                                hit = True  
+            # KNIGHT BEHAVIOR
+            elif abs(square) == KNIGHT:
+                if print1: print(f"It's {self.turn}'s turn")
+                if print1: print(f"The acctive piece's color is: {self.piece_color(square)}") 
+                knight_move_deltas = [(2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2), (1, 2)]
 
-                # WHITE KING BEHAVIOR
-                elif square == 6: 
-                    directions = [(1,1), (1,-1), (-1,-1), (-1,1), (0,1), (1,0), (0,-1), (-1,0)]
-                    for delta in directions:
-                        cur_rank = rank
-                        cur_file = file
+                for delta in knight_move_deltas: #finding final move positions and checking if on board
+                    endrank, endfile = (rank + delta[0], file + delta[1])
+                    if 1<=endrank<=8 and 1<=endfile<=8: 
+                        if print1: print("Knight move stays on board with:")
+                        if print1: print(f"Start pos: ({rank},{file},{self.rankfile_to_coords((rank, file))}) "
+                                            f"moves to ({endrank},{endfile},{self.rankfile_to_coords((endrank, endfile))})")
+                        knight_move_index_delta = -8*delta[0] + delta[1] # convert from rank and file to index 
+                        finalIndex = i + knight_move_index_delta
+                        target_piece = self.squares[finalIndex]
+                        if target_piece == EMPTY:
+                            valid_moves.append(Move(i, finalIndex, NORMAL, 0))
+                        elif self.piece_color(target_piece) != current_piece_color: #the only thing that changed to generalize to both colors
+                            valid_moves.append(Move(i, finalIndex, CAPTURE, 0))
+
+            # ALL BISHOP BEHAVIOR
+            elif abs(square) == BISHOP: 
+                #check northwest squares
+                directions = [(1,1), (1,-1), (-1,-1), (-1,1)]
+                for delta in directions:
+                    hit = False
+                    cur_rank = rank
+                    cur_file = file
+                    #valid_bishop_indices = []
+                    while not hit: 
+                        #rank and file variables
                         new_rank = cur_rank + delta[0]
                         new_file = cur_file + delta[1]
-
-                        if 1<=new_rank<=8 and 1<=new_file<=8: # ensure new square is on board
+                        if 1<=new_rank<=8 and 1<=new_file<=8: #limits within board
                             valid_index = self.rankfile_to_index(new_rank, new_file)
-                            if self.squares[valid_index] > 0:
-                                hit = True
-                            elif self.squares[valid_index] == 0:
+                            target_piece = self.squares[valid_index]
+                            
+                            if target_piece == EMPTY:
                                 valid_moves.append(Move(i, valid_index, NORMAL, 0))
                                 cur_rank = new_rank
                                 cur_file = new_file
-                            elif self.squares[valid_index] < 0:
-                                valid_moves.append(Move(i, valid_index, CAPTURE, 0))
-                                hit = True  
+                            else:
+                                target_piece_color = self.piece_color(target_piece)
+                                if target_piece_color == current_piece_color:
+                                    hit = True
+                                else: #assume opposite piece color
+                                    valid_moves.append(Move(i, valid_index, CAPTURE, 0))
+                                    hit = True  
+                        else: #the board limits were reached
+                            hit = True
+
+            # ALL ROOK BEHAVIOR
+            elif abs(square) == ROOK: 
+                #check northwest squares
+                directions = [(0,1), (1,0), (0,-1), (-1,0)]
+                for delta in directions:
+                    hit = False
+                    cur_rank = rank
+                    cur_file = file
+                    #valid_bishop_indices = []
+                    while not hit: 
+                        #rank and file variables
+                        new_rank = cur_rank + delta[0]
+                        new_file = cur_file + delta[1]
+                        if 1<=new_rank<=8 and 1<=new_file<=8: #limits within board
+                            valid_index = self.rankfile_to_index(new_rank, new_file)
+                            target_piece = self.squares[valid_index]
+                            
+                            if target_piece == EMPTY:
+                                valid_moves.append(Move(i, valid_index, NORMAL, 0))
+                                cur_rank = new_rank
+                                cur_file = new_file
+                            else:
+                                target_piece_color = self.piece_color(target_piece)
+                                if target_piece_color == current_piece_color:
+                                    hit = True
+                                else: #assume opposite piece color
+                                    valid_moves.append(Move(i, valid_index, CAPTURE, 0))
+                                    hit = True  
                         else: #the board limits were reached
                             hit = True  
-                
+
+            # ALL QUEEN BEHAVIOR
+            elif abs(square) == QUEEN: 
+                #check northwest squares
+                directions = [(1,1), (1,-1), (-1,-1), (-1,1), (0,1), (1,0), (0,-1), (-1,0)]
+                for delta in directions:
+                    hit = False
+                    cur_rank = rank
+                    cur_file = file
+                    #valid_bishop_indices = []
+                    while not hit: 
+                        #rank and file variables
+                        new_rank = cur_rank + delta[0]
+                        new_file = cur_file + delta[1]
+                        if 1<=new_rank<=8 and 1<=new_file<=8: #limits within board
+                            valid_index = self.rankfile_to_index(new_rank, new_file)
+                            target_piece = self.squares[valid_index]
+                            
+                            if target_piece == EMPTY:
+                                valid_moves.append(Move(i, valid_index, NORMAL, 0))
+                                cur_rank = new_rank
+                                cur_file = new_file
+                            else:
+                                target_piece_color = self.piece_color(target_piece)
+                                if target_piece_color == current_piece_color:
+                                    hit = True
+                                else: #assume opposite piece color
+                                    valid_moves.append(Move(i, valid_index, CAPTURE, 0))
+                                    hit = True  
+                        else: #the board limits were reached
+                            hit = True  
+
+            # KING BEHAVIOR
+            elif abs(square) == KING: 
+                directions = [(1,1), (1,-1), (-1,-1), (-1,1), (0,1), (1,0), (0,-1), (-1,0)]
+                for delta in directions:
+                    new_rank = rank + delta[0]
+                    new_file = file + delta[1]
+
+                    if 1<=new_rank<=8 and 1<=new_file<=8: # ensure new square is on board
+                        valid_index = self.rankfile_to_index(new_rank, new_file)
+                        target_piece = self.squares[valid_index]
+
+                        if target_piece == EMPTY:
+                            valid_moves.append(Move(i, valid_index, NORMAL, 0))
+                        else:
+                            target_piece_color = self.piece_color(target_piece)
+                            if target_piece_color == current_piece_color:
+                                continue
+                            else: #assume opposite piece color
+                                valid_moves.append(Move(i, valid_index, CAPTURE, 0))
+            
         #print() #debugging
         #print(f"pieces that can move: {pieces_that_can_moove}")
-        #deprecated: for i in indexes_that_can_moove:
-        #print(f"Valid moves: {valid_moves}")
         if print_moves:
             for move in valid_moves:
                 print(f"Piece {self.piece_to_char(self.squares[move[0]])} can move from "
-                      f"{self.index_to_coords(move[0])} to {self.index_to_coords(move[1])} with move type: {move[2]}")
-
+                        f"{self.index_to_coords(move[0])} to {self.index_to_coords(move[1])} with move type: {move[2]}")
         return valid_moves
       
     def make_move(self):
@@ -501,3 +515,174 @@ class Chessboard:
     
 
 # Test Script:
+
+### Old deprecated stuff: 
+'''             
+# WHITE PAWN BEHAVIOR
+if square == 1: #white pawn behavior
+    #checking one forward of pawn
+    target_square = i-8
+    if self.index_to_rank(target_square) != rank + 1: raise ValueError("Pawn did not move correctly???")
+    if rank == 8: raise ValueError("How do you have a pawn on the 8th rank???")                    
+    if self.squares[target_square] == 0:
+        if self.index_to_rank(target_square) != 8:
+            if print0: print(f"{target_square} Confirmed blank: {self.index_to_coords(i-8)}")
+            valid_moves.append(Move(i, target_square, NORMAL, 0))
+        else:
+            if print0: print(f"{target_square} Confirmed blank: {self.index_to_coords(i-8)}")
+            valid_moves.append(Move(i, target_square, PROMOTION, 0))
+        #if pawn on starting rank and the first square was clear, check 2 forward
+        if rank == 2:
+            if print0: print(f"White pawn hasn't moved on: {self.index_to_coords(i)}")
+            if self.squares[i-16]==0:
+                if print0: print(f"{i-16} Confirmed blank: {self.index_to_coords(i-16)}")
+                move = Move(i, i-16, DOUBLE_PAWN, 0)
+                valid_moves.append(move)
+
+    # Checking capture to right
+    right_capture = i-7
+    if file != 8: #can't capture right on file 8
+        if print0: print(f"capturable square on {right_capture}")
+        if self.squares[right_capture] < 0:
+            if print0: print(f"Capturable piece on {right_capture}")
+            valid_moves.append(Move(i, right_capture, CAPTURE, 0))
+        elif right_capture == self.en_passant_square:
+            valid_moves.append(Move(i, right_capture, EN_PASSANT, 0))
+    # Checking capture to left
+    left_capture = i-9
+    if file != 1: #can't capture left on file 1
+        if print0: print(f"capturable square on {left_capture}")
+        if self.squares[left_capture] < 0: 
+            if print0: print(f"Capturable piece on {left_capture}")
+            valid_moves.append(Move(i, left_capture, CAPTURE, 0))
+        elif left_capture == self.en_passant_square:
+            valid_moves.append(Move(i, left_capture, EN_PASSANT, 0))
+                            
+                            
+# WHITE KNIGHT BEHAVIOR (nice guy)
+elif square == 2 : 
+    if print1: print(f"It's {self.turn}'s turn")
+    if print1: print(f"The piece in question is: {self.piece_color(square)}") 
+    knight_move_deltas = [(2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2), (1, 2)]
+    #knight_move_deltas_index = [-15, -17, -6, 10, 17, 15, 6, -10]
+
+    for delta in knight_move_deltas: #finding final move positions and checking if on board
+        endrank, endfile = (rank + delta[0], file + delta[1])
+        if 1<=endrank<=8 and 1<=endfile<=8: 
+            if print1: print("Knight move stays on board with:")
+            if print1: print(f"Start pos: ({rank},{file},{self.rankfile_to_coords((rank, file))}) "
+                                f"moves to ({endrank},{endfile},{self.rankfile_to_coords((endrank, endfile))})")
+                
+            knight_move_index_delta = -8*delta[0] + delta[1] # convert from rank and file to index 
+            finalIndex = i + knight_move_index_delta
+            if self.squares[finalIndex] == 0:
+                valid_moves.append(Move(i, finalIndex, NORMAL, 0))
+            elif self.squares[finalIndex] < 0:
+                valid_moves.append(Move(i, finalIndex, 1, 0))
+                
+#  WHITE BISHOP BEHAVIOR
+elif abs(square) == BISHOP: 
+    #check northwest squares
+    directions = [(1,1), (1,-1), (-1,-1), (-1,1)]
+    for delta in directions:
+        hit = False
+        cur_rank = rank
+        cur_file = file
+        #valid_bishop_indices = []
+        while not hit: 
+            #rank and file variables
+            new_rank = cur_rank + delta[0]
+            new_file = cur_file + delta[1]
+            if 1<=new_rank<=8 and 1<=new_file<=8: #limits within board
+                valid_index = self.rankfile_to_index(new_rank, new_file)
+                
+                if self.squares[valid_index] > 0:
+                    hit = True
+                elif self.squares[valid_index] == 0:
+                    valid_moves.append(Move(i, valid_index, NORMAL, 0))
+                    cur_rank = new_rank
+                    cur_file = new_file
+                elif self.squares[valid_index] < 0:
+                    valid_moves.append(Move(i, valid_index, CAPTURE, 0))
+                    hit = True  
+            else: #the board limits were reached
+                hit = True
+                
+
+
+            #WHITE ROOK BEHAVIOR
+            elif square == 4: #rook behavior
+                directions = [(0,1), (1,0), (0,-1), (-1,0)]
+                for delta in directions:
+                    hit = False
+                    cur_rank = rank
+                    cur_file = file
+                    #valid_bishop_indices = []
+                    while not hit: 
+                        #rank and file variables
+                        new_rank = cur_rank + delta[0]
+                        new_file = cur_file + delta[1]
+                        if 1<=new_rank<=8 and 1<=new_file<=8: #limits within board
+                            valid_index = self.rankfile_to_index(new_rank, new_file)
+                            if self.squares[valid_index] > 0:
+                                hit = True
+                            elif self.squares[valid_index] == 0:
+                                valid_moves.append(Move(i, valid_index, NORMAL, 0))
+                                cur_rank = new_rank
+                                cur_file = new_file
+                            elif self.squares[valid_index] < 0:
+                                valid_moves.append(Move(i, valid_index, CAPTURE, 0))
+                                hit = True  
+                        else: #the board limits were reached
+                            hit = True  
+
+            #WHITE QUEEN BEHVAIOR
+            elif square == 5: 
+                directions = [(1,1), (1,-1), (-1,-1), (-1,1), (0,1), (1,0), (0,-1), (-1,0)]
+                for delta in directions:
+                    hit = False
+                    cur_rank = rank
+                    cur_file = file
+                    #valid_bishop_indices = []
+                    while not hit: 
+                        #rank and file variables
+                        new_rank = cur_rank + delta[0]
+                        new_file = cur_file + delta[1]
+                        if 1<=new_rank<=8 and 1<=new_file<=8: #limits within board
+                            valid_index = self.rankfile_to_index(new_rank, new_file)
+                            if self.squares[valid_index] > 0:
+                                hit = True
+                            elif self.squares[valid_index] == 0:
+                                valid_moves.append(Move(i, valid_index, NORMAL, 0))
+                                cur_rank = new_rank
+                                cur_file = new_file
+                            elif self.squares[valid_index] < 0:
+                                valid_moves.append(Move(i, valid_index, CAPTURE, 0))
+                                hit = True  
+                        else: #the board limits were reached
+                            hit = True  
+
+            # WHITE KING BEHAVIOR
+            elif square == 6: 
+                directions = [(1,1), (1,-1), (-1,-1), (-1,1), (0,1), (1,0), (0,-1), (-1,0)]
+                for delta in directions:
+                    cur_rank = rank
+                    cur_file = file
+                    new_rank = cur_rank + delta[0]
+                    new_file = cur_file + delta[1]
+
+                    if 1<=new_rank<=8 and 1<=new_file<=8: # ensure new square is on board
+                        valid_index = self.rankfile_to_index(new_rank, new_file)
+                        if self.squares[valid_index] > 0:
+                            hit = True
+                        elif self.squares[valid_index] == 0:
+                            valid_moves.append(Move(i, valid_index, NORMAL, 0))
+                            cur_rank = new_rank
+                            cur_file = new_file
+                        elif self.squares[valid_index] < 0:
+                            valid_moves.append(Move(i, valid_index, CAPTURE, 0))
+                            hit = True  
+                    else: #the board limits were reached
+                        hit = True  
+
+'''
