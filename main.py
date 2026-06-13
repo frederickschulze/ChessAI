@@ -26,7 +26,7 @@ def main():
 
     #board.set_square(1, "f4")
 
-    board.print_board(flipped = False)
+    board.print_board(flipped = False, letters = True)
     print()    
     FEN = board.generate_FEN()
     print(f"The FEN generated is: {FEN}")

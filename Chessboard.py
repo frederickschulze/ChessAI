@@ -26,7 +26,6 @@ EN_PASSANT = 4
 PROMOTION = 5
 PROMOTION_CAPTURE = 6
 
-
 class Move(NamedTuple):
     start: int
     end: int
@@ -178,7 +177,8 @@ class Chessboard:
         #print(FEN)
         return FEN
 
-    def generate_valid_moves(self):
+
+    def generate_psueod_valid_moves(self):
         print0 = False
         print1 = False
         print_moves = True
@@ -369,7 +369,7 @@ class Chessboard:
                             valid_moves.append(Move(i, valid_index, NORMAL, 0))
                         else:
                             target_piece_color = self.piece_color(target_piece)
-                            if target_piece_color == current_piece_color:
+                            if target_piece_color == current_piece_color: 
                                 continue
                             else: #assume opposite piece color
                                 valid_moves.append(Move(i, valid_index, CAPTURE, 0))
@@ -382,29 +382,71 @@ class Chessboard:
                         f"{self.index_to_coords(move[0])} to {self.index_to_coords(move[1])} with move type: {move[2]}")
         return valid_moves
       
-    def make_move(self):
-        return 0
 
+    #def make_move(self, start_i, target_i):
+    #    self.squares[target_i] = self.squares[start_i]
+    #    self.squares[start_i] = 0
+
+    def make_move(self, move_deets: Move):
+        start_i = move_deets.start
+        end_i = move_deets.end
+        move_type = move_deets.flag
+        promotion_piece = move_deets.promotion
+
+        self.en_passant_square = NO_PASSANT #only gets reassigned if there's a double pawn move
+
+        if move_type == NORMAL or move_type == CAPTURE:
+            self.squares[end_i] = self.squares[start_i]
+            self.squares[start_i] = EMPTY
+
+        elif move_type == DOUBLE_PAWN:
+            self.squares[end_i] = self.squares[start_i]
+            self.squares[start_i] = EMPTY
+            self.en_passant_square = (start_i + end_i) // 2
+
+        elif move_type == CASTLE:
+            self.squares[end_i] = self.squares[start_i]
+            self.squares[start_i] = EMPTY
+            rook_start_i = start_i + 3 if end_i > start_i else start_i - 4 #end_i > start_i for king side castling
+            rook_destination_i = (start_i + end_i) // 2
+            self.squares[rook_destination_i] = self.squares[rook_start_i]
+            self.squares[rook_start_i] = EMPTY
+
+        elif move_type == EN_PASSANT:
+            self.squares[end_i] = self.squares[start_i]
+            self.squares[start_i] = 0
+            if self.turn == BLACK: taken_index = end_i - 8
+            else: taken_index = end_i+8 #self.turn == WHITE
+            self.squares[taken_index] = EMPTY
+
+        elif move_type == PROMOTION:
+            print("need to work ont this ")
+    
     @staticmethod
     def piece_color(piece: int):
         if piece > 0: return WHITE
         elif piece < 0: return BLACK
         elif piece == 0: raise ValueError("This is an empty square, not a piece")
         else: raise ValueError("How the hek did this happen?")
-        return color
+    
+    @staticmethod
+    def opposite_color(color: str) -> str:
+        if color == WHITE: return BLACK
+        elif color == BLACK: return WHITE
+        else: raise ValueError("Unexpected input value. Input WHITE ('w') or BLACK ('b')")
     
     # print the board to the terminal
-    def print_board(self, flipped: bool = False):
-        i = 0
-        if flipped:
-            local_flipped_squares = self.flip_vertically(self.squares)
+    def print_board(self, flipped: bool = False, letters: bool = False):
+        if flipped: local_flipped_squares = self.flip_vertically(self.squares)
         else: local_flipped_squares = self.squares
-        for char in local_flipped_squares:
-            if char >= 0: print(f" {char}", end="")
-            elif char < 0: print(char, end="")
-            i += 1
-            if i >= 8:
-                i = 0
+
+        for i, piece_num in enumerate(local_flipped_squares):
+            if letters == False:
+                if piece_num >= 0: print(f" {piece_num}", end="")
+                elif piece_num < 0: print(piece_num, end="")
+            else:
+                print(f"{self.piece_to_char(piece_num)} ", end="")
+            if (i+1) % 8 == 0:
                 print()
     
     @staticmethod
