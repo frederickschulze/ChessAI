@@ -85,7 +85,6 @@ class Chessboard:
     
     @classmethod 
     def from_FEN(cls, FEN: str) -> "Chessboard":
-        #example FEN: "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2")
         squares = cls.get_FEN_squares(FEN)
         turn_fromFEN = FEN.split(" ")[1]
         castling_rights_fromFEN = FEN.split(" ")[2]
@@ -235,7 +234,7 @@ class Chessboard:
                             if print0: print(f"Capturable piece on {capture_index}")
                             if (current_piece_color == WHITE and rank == 7) or (current_piece_color == BLACK and rank == 2):
                                 for promotional_piece in [KNIGHT, BISHOP, ROOK, QUEEN]:
-                                    valid_moves.append(Move(i, capture_index, PROMOTION_CAPTURE, promotional_piece))
+                                    valid_moves.append(Move(i, capture_index, PROMOTION, promotional_piece))
                             else:
                                 valid_moves.append(Move(i, capture_index, CAPTURE, 0))
                     elif capture_index == self.en_passant_square:
@@ -364,7 +363,6 @@ class Chessboard:
                     if 1<=new_rank<=8 and 1<=new_file<=8: # ensure new square is on board
                         valid_index = self.rankfile_to_index(new_rank, new_file)
                         target_piece = self.squares[valid_index]
-
                         if target_piece == EMPTY:
                             valid_moves.append(Move(i, valid_index, NORMAL, 0))
                         else:
@@ -388,12 +386,30 @@ class Chessboard:
     #    self.squares[start_i] = 0
 
     def make_move(self, move_deets: Move):
+        #example FEN: "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2")
+        
         start_i = move_deets.start
         end_i = move_deets.end
         move_type = move_deets.flag
         promotion_piece = move_deets.promotion
 
         self.en_passant_square = NO_PASSANT #only gets reassigned if there's a double pawn move
+
+        #castling checks
+        moving_piece = self.squares[start_i]
+        if moving_piece == KING:
+            self.castling_rights = self.castling_rights.replace("K", "").replace("Q", "")
+        elif moving_piece == -KING:
+            self.castling_rights = self.castling_rights.replace("k", "").replace("q", "")
+        elif moving_piece == ROOK:
+            if start_i == 63: self.castling_rights = self.castling_rights.replace("K", "")
+            elif start_i == 56: self.castling_rights = self.castling_rights.replace("Q", "")
+        elif moving_piece == -ROOK:
+            if start_i == 7: self.castling_rights = self.castling_rights.replace("k", "")
+            elif start_i == 0: self.castling_rights = self.castling_rights.replace("q", "")
+
+        #also need to remove castling rights if the rook was captured... 
+
 
         if move_type == NORMAL or move_type == CAPTURE:
             self.squares[end_i] = self.squares[start_i]
@@ -419,8 +435,14 @@ class Chessboard:
             else: taken_index = end_i+8 #self.turn == WHITE
             self.squares[taken_index] = EMPTY
 
-        elif move_type == PROMOTION:
-            print("need to work ont this ")
+        elif move_type == PROMOTION: 
+            if abs(promotion_piece) not in (KNIGHT, BISHOP, ROOK, QUEEN):
+                raise ValueError("Invalid promotion piece.")
+            self.squares[end_i] = abs(promotion_piece) if self.turn == WHITE else -abs(promotion_piece)
+            self.squares[start_i] = EMPTY
+        
+        self.turn = self.opposite_color(self.turn)
+        
     
     @staticmethod
     def piece_color(piece: int):

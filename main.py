@@ -38,7 +38,7 @@ def main():
     '''print(f"FEN of my board object: {FEN}")
     print(f"FEN of stockfish object: {stockfish.get_fen_position()}")
     '''
-    valid_moves = board.generate_valid_moves()
+    valid_moves = board.generate_psuedo_valid_moves()
 
 if __name__ == "__main__":
     main()
