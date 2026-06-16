@@ -115,34 +115,6 @@ class Chessboard:
         if square_index != 64: raise ValueError("Did not receive the expected amount of squares")
         return squareList
 
-    #bunch of not very-useful helper functions
-    @staticmethod
-    def get_FEN_turn(FEN: str) -> str:
-    #example FEN: "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2")
-        turn_fromFEN = FEN.split(" ")[1]
-        return turn_fromFEN
-    @staticmethod
-    def get_FEN_castling_rights(FEN: str) -> str:
-        castling_rights_from_FEN = FEN.split(" ")[2]
-        if castling_rights_from_FEN == "-": castling_rights_from_FEN = ""
-        return castling_rights_from_FEN
-    @staticmethod # this might be the most useful helper function
-    def get_FEN_en_passant(FEN: str) -> int:
-        en_passant_from_FEN_coords = FEN.split(" ")[3]
-        if en_passant_from_FEN_coords == "-": return NO_PASSANT
-        else: en_passant_from_FEN_index = Chessboard.coords_to_index(en_passant_from_FEN_coords)
-        return en_passant_from_FEN_index
-    @staticmethod
-    def get_FEN_halfmove_clock(FEN: str) -> int:
-        halfmove_clock_from_FEN = FEN.split(" ")[4]
-        halfmove_clock_from_FEN = int(halfmove_clock_from_FEN)
-        return halfmove_clock_from_FEN
-    @staticmethod
-    def get_FEN_fullmove_number(FEN: str) -> int:
-        fullmove_number_from_FEN = FEN.split(" ")[5]
-        fullmove_number_from_FEN = int(fullmove_number_from_FEN)
-        return fullmove_number_from_FEN
-
     def set_position_from_FEN(self):
     #example FEN: "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2")
         return 0
@@ -176,8 +148,7 @@ class Chessboard:
         #print(FEN)
         return FEN
 
-
-    def generate_psueod_valid_moves(self):
+    def generate_pseudo_valid_moves(self) -> list[Move]:
         print0 = False
         print1 = False
         print_moves = True
@@ -380,48 +351,58 @@ class Chessboard:
                         f"{self.index_to_coords(move[0])} to {self.index_to_coords(move[1])} with move type: {move[2]}")
         return valid_moves
       
-
-    #def make_move(self, start_i, target_i):
-    #    self.squares[target_i] = self.squares[start_i]
-    #    self.squares[start_i] = 0
+    def make_move_coords(self, coords: str):
+        if len(coords) != 4 and len(coords) !=5: raise ValueError("Invlaid coords received")
+        first_coord = coords[0:2]
+        second_coord = coords[2:4]
+        first_index = self.coords_to_index(first_coord)
+        second_index = self.coords_to_index(second_coord)
+        if len(coords) == 5:
+            promotion_piece_char = coords[-1]
+            # PIECE_TO_CHAR = ".PNBRQK"
+            promotion_piece_int = PIECE_TO_CHAR.index(promotion_piece_char.upper())
+            self.make_move_ints_pseudo(first_index, second_index, promotion_piece_int)
+        else:  self.make_move_ints_pseudo(first_index, second_index)
+            
+    def make_move_ints_pseudo(self, start_i: int, end_i: int, promotion_piece: int = -1):
+        for move in self.generate_pseudo_valid_moves(): #will need to be legal moves later
+            if move.start == start_i and move.end == end_i:
+                if move.flag == PROMOTION:
+                    if promotion_piece == -1:
+                        raise ValueError("No promotion piece provided for promotion move")
+                    if promotion_piece == move.promotion:
+                        self.make_move(move)
+                        return
+                elif promotion_piece != -1:
+                    raise ValueError("promotion piece given for non-promotion move")
+                else: #equivalent to "elif promtion_piece == -1"
+                    self.make_move(move)
+                    return
+        raise ValueError("No legal move was found :(")
 
     def make_move(self, move_deets: Move):
         #example FEN: "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2")
-        
         start_i = move_deets.start
         end_i = move_deets.end
         move_type = move_deets.flag
         promotion_piece = move_deets.promotion
-
-        self.en_passant_square = NO_PASSANT #only gets reassigned if there's a double pawn move
-
-        #castling checks
         moving_piece = self.squares[start_i]
-        if moving_piece == KING:
-            self.castling_rights = self.castling_rights.replace("K", "").replace("Q", "")
-        elif moving_piece == -KING:
-            self.castling_rights = self.castling_rights.replace("k", "").replace("q", "")
-        elif moving_piece == ROOK:
-            if start_i == 63: self.castling_rights = self.castling_rights.replace("K", "")
-            elif start_i == 56: self.castling_rights = self.castling_rights.replace("Q", "")
-        elif moving_piece == -ROOK:
-            if start_i == 7: self.castling_rights = self.castling_rights.replace("k", "")
-            elif start_i == 0: self.castling_rights = self.castling_rights.replace("q", "")
+        taken_piece = self.squares[end_i]
 
+        self.en_passant_square = NO_PASSANT #only gets reassigned if there's a double pawn move            
         #also need to remove castling rights if the rook was captured... 
 
-
         if move_type == NORMAL or move_type == CAPTURE:
-            self.squares[end_i] = self.squares[start_i]
+            self.squares[end_i] = moving_piece
             self.squares[start_i] = EMPTY
 
         elif move_type == DOUBLE_PAWN:
-            self.squares[end_i] = self.squares[start_i]
+            self.squares[end_i] = moving_piece
             self.squares[start_i] = EMPTY
             self.en_passant_square = (start_i + end_i) // 2
 
         elif move_type == CASTLE:
-            self.squares[end_i] = self.squares[start_i]
+            self.squares[end_i] = moving_piece
             self.squares[start_i] = EMPTY
             rook_start_i = start_i + 3 if end_i > start_i else start_i - 4 #end_i > start_i for king side castling
             rook_destination_i = (start_i + end_i) // 2
@@ -429,7 +410,7 @@ class Chessboard:
             self.squares[rook_start_i] = EMPTY
 
         elif move_type == EN_PASSANT:
-            self.squares[end_i] = self.squares[start_i]
+            self.squares[end_i] = moving_piece
             self.squares[start_i] = 0
             if self.turn == BLACK: taken_index = end_i - 8
             else: taken_index = end_i+8 #self.turn == WHITE
@@ -441,21 +422,38 @@ class Chessboard:
             self.squares[end_i] = abs(promotion_piece) if self.turn == WHITE else -abs(promotion_piece)
             self.squares[start_i] = EMPTY
         
+        else: raise ValueError("Invalid move type received")
+
         self.turn = self.opposite_color(self.turn)
+        self.update_castling_rights(start_i, end_i, moving_piece, taken_piece)
+        if self.turn == WHITE:
+            self.fullmove_number = self.fullmove_number + 1
+        if abs(moving_piece) == PAWN or move_type == CAPTURE:
+            self.halfmove_clock = 0
+        else:
+            self.halfmove_clock = self.halfmove_clock + 1
         
-    
-    @staticmethod
-    def piece_color(piece: int):
-        if piece > 0: return WHITE
-        elif piece < 0: return BLACK
-        elif piece == 0: raise ValueError("This is an empty square, not a piece")
-        else: raise ValueError("How the hek did this happen?")
-    
-    @staticmethod
-    def opposite_color(color: str) -> str:
-        if color == WHITE: return BLACK
-        elif color == BLACK: return WHITE
-        else: raise ValueError("Unexpected input value. Input WHITE ('w') or BLACK ('b')")
+        
+    def update_castling_rights(self, start_i: int, end_i: int, moving_piece: int, taken_piece: int):
+    #castling checks
+        if moving_piece == KING:
+            self.castling_rights = self.castling_rights.replace("K", "").replace("Q", "")
+        elif moving_piece == -KING:
+            self.castling_rights = self.castling_rights.replace("k", "").replace("q", "")
+        elif moving_piece == ROOK:
+            if start_i == 63: self.castling_rights = self.castling_rights.replace("K", "")
+            elif start_i == 56: self.castling_rights = self.castling_rights.replace("Q", "")
+        elif moving_piece == -ROOK:
+            if start_i == 7: self.castling_rights = self.castling_rights.replace("k", "")
+            elif start_i == 0: self.castling_rights = self.castling_rights.replace("q", "")
+        
+        if taken_piece == ROOK:
+            if end_i == 63: self.castling_rights = self.castling_rights.replace("K", "")
+            elif end_i == 56: self.castling_rights = self.castling_rights.replace("Q", "")
+        elif taken_piece == -ROOK:
+            if end_i == 7: self.castling_rights = self.castling_rights.replace("k", "")
+            elif end_i == 0: self.castling_rights = self.castling_rights.replace("q", "")
+        
     
     # print the board to the terminal
     def print_board(self, flipped: bool = False, letters: bool = False):
@@ -471,6 +469,29 @@ class Chessboard:
             if (i+1) % 8 == 0:
                 print()
     
+    def set_square(self, value: int, start_coords: str, end_coords = None):
+        start_index = self.coords_to_index(start_coords)
+        if end_coords is not None:
+            end_index = self.coords_to_index(end_coords)
+            if start_index > end_index:
+                start_index, end_index = end_index, start_index
+            self.squares[start_index:end_index+1] = [value]*(end_index-start_index+1)
+        else:
+            self.squares[start_index] = value
+
+    @staticmethod
+    def piece_color(piece: int):
+        if piece > 0: return WHITE
+        elif piece < 0: return BLACK
+        elif piece == 0: raise ValueError("This is an empty square, not a piece")
+        else: raise ValueError("How the hek did this happen?")
+    
+    @staticmethod
+    def opposite_color(color: str) -> str:
+        if color == WHITE: return BLACK
+        elif color == BLACK: return WHITE
+        else: raise ValueError("Unexpected input value. Input WHITE ('w') or BLACK ('b')")
+
     @staticmethod
     def piece_to_char(piece: int) -> str:
         char = PIECE_TO_CHAR[abs(piece)]
@@ -495,17 +516,6 @@ class Chessboard:
         for rank in range(0,8):
             flippedSquares[8*rank:(8*(rank+1))] = squares[(8*(7-rank)):(8*(8-rank))]
         return flippedSquares
-        
-
-    def set_square(self, value: int, start_coords: str, end_coords = None):
-        start_index = self.coords_to_index(start_coords)
-        if end_coords is not None:
-            end_index = self.coords_to_index(end_coords)
-            if start_index > end_index:
-                start_index, end_index = end_index, start_index
-            self.squares[start_index:end_index+1] = [value]*(end_index-start_index+1)
-        else:
-            self.squares[start_index] = value
 
     #gives rank and file indexed from 1
     @staticmethod
@@ -542,14 +552,12 @@ class Chessboard:
         # order goes a8, b8, c8, ... h8, a7, b7, ... g1, h1. 
         fileNames = "abcdefgh"
         rankNames = "87654321"
-
         # input check
         if (not isinstance(coords, str)
             or len(coords) != 2
             or coords[0] not in fileNames
             or coords[1] not in rankNames):
             raise ValueError("The input coords are not in the correct format")
-        
         fileNum = fileNames.index(coords[0])
         rankNum = rankNames.index(coords[1])
         overall_index = 8*(rankNum)+fileNum
@@ -565,18 +573,41 @@ class Chessboard:
     def rankfile_to_coords(rankfile: tuple) -> str:
         rankNames = "12345678"
         fileNames = "abcdefgh"
-        
         rankChar = rankNames[rankfile[0]-1]
         fileChar = fileNames[rankfile[1]-1]
-
         coords = str(fileChar)+str(rankChar)
-
         return coords
 
     def set_board_state(self, board: str):
         self.squares = self.squares
 
-    
+        #bunch of not very-useful helper functions
+    @staticmethod
+    def get_FEN_turn(FEN: str) -> str:
+    #example FEN: "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2")
+        turn_fromFEN = FEN.split(" ")[1]
+        return turn_fromFEN
+    @staticmethod
+    def get_FEN_castling_rights(FEN: str) -> str:
+        castling_rights_from_FEN = FEN.split(" ")[2]
+        if castling_rights_from_FEN == "-": castling_rights_from_FEN = ""
+        return castling_rights_from_FEN
+    @staticmethod # this might be the most useful helper function
+    def get_FEN_en_passant(FEN: str) -> int:
+        en_passant_from_FEN_coords = FEN.split(" ")[3]
+        if en_passant_from_FEN_coords == "-": return NO_PASSANT
+        else: en_passant_from_FEN_index = Chessboard.coords_to_index(en_passant_from_FEN_coords)
+        return en_passant_from_FEN_index
+    @staticmethod
+    def get_FEN_halfmove_clock(FEN: str) -> int:
+        halfmove_clock_from_FEN = FEN.split(" ")[4]
+        halfmove_clock_from_FEN = int(halfmove_clock_from_FEN)
+        return halfmove_clock_from_FEN
+    @staticmethod
+    def get_FEN_fullmove_number(FEN: str) -> int:
+        fullmove_number_from_FEN = FEN.split(" ")[5]
+        fullmove_number_from_FEN = int(fullmove_number_from_FEN)
+        return fullmove_number_from_FEN
 
 # Test Script:
 
@@ -748,5 +779,18 @@ elif abs(square) == BISHOP:
                             hit = True  
                     else: #the board limits were reached
                         hit = True  
+
+        def make_move_ints(self, start_i: int, end_i: int, promotion_piece: int = 0):
+        moving_piece = self.squares[start_i]
+        dest_piece = self.squares[end_i]
+        if end_i == self.en_passant_square:
+            move_type = EN_PASSANT
+        elif dest_piece == 0:
+            move_type = NORMAL
+        elif self.piece_color(dest_piece) == self.opposite_color(self.piece_color(moving_piece)):
+            move_type = CAPTURE
+        elif self.piece_color(dest_piece) == self.piece_color(moving_piece):
+            raise ValueError("You're trying to capture your own piece!")
+        elif self."
 
 '''
