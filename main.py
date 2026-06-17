@@ -8,7 +8,7 @@ def main():
     #stockfish = Stockfish(r"C:\Users\frede\Documents\Code Projects\ChessAI\engines\stockfish\stockfish-windows-x86-64-avx2.exe")
 
     #board = Chessboard.standard()
-    FENexample = "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2"
+    FENexample = "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2"
     board = Chessboard.from_FEN(FENexample)
 
     #Testing coords and name conversions
@@ -30,15 +30,28 @@ def main():
     print()    
     FEN = board.generate_FEN()
     print(f"The FEN generated is: {FEN}")
+    print("\nNow making the move bc4, nc6, qf3, qe7")
+    board.make_move_coords("f1c4")
+    board.make_move_coords("b8c6")
+    board.make_move_coords("d1f3")
+    board.make_move_coords("d8e7")
+    board.print_board(letters = True)
+    FEN = board.generate_FEN()
+    print(f"The FEN generated is: {FEN}")
 
+    print("This is a test of the stockfish library")
     stockfish.make_moves_from_start(["e2e4", "e7e6", "d2d4", "d7d5"]) #
-    print(f"stonkfish after moving: {stockfish.get_fen_position()}")
+    print(f"stonkfish after making some moves: {stockfish.get_fen_position()}")
     print(f"stonkfish best move now: {stockfish.get_best_move()}\n")
     
     '''print(f"FEN of my board object: {FEN}")
     print(f"FEN of stockfish object: {stockfish.get_fen_position()}")
     '''
     valid_moves = board.generate_pseudo_valid_moves()
+    print(f"the valid moves of my board are:")
+    for move in valid_moves:
+        print(f"Piece {board.piece_to_char(board.get_piece_at_index(move[0]))} can move from "
+              f"{Chessboard.index_to_coords(move[0])} to {Chessboard.index_to_coords(move[1])} with move type: {move[2]} and promotion {move[3]}")
 
 if __name__ == "__main__":
     main()

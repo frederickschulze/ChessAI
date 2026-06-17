@@ -151,7 +151,7 @@ class Chessboard:
     def generate_pseudo_valid_moves(self) -> list[Move]:
         print0 = False
         print1 = False
-        print_moves = True
+        print_moves = False
         valid_moves = []
 
         #Test en passant self.en_passant_square = self.coords_to_index("e3")
@@ -376,7 +376,7 @@ class Chessboard:
                 elif promotion_piece != -1:
                     raise ValueError("promotion piece given for non-promotion move")
                 else: #equivalent to "elif promtion_piece == -1"
-                    self.make_move(move)
+                    self.make_move(move)  
                     return
         raise ValueError("No legal move was found :(")
 
@@ -478,6 +478,11 @@ class Chessboard:
             self.squares[start_index:end_index+1] = [value]*(end_index-start_index+1)
         else:
             self.squares[start_index] = value
+
+    def get_piece_at_index(self, index: int) -> int:
+        if not 0 <= index <= 63:
+            raise ValueError("The index received is out of range")
+        else: return self.squares[index]
 
     @staticmethod
     def piece_color(piece: int):
