@@ -47,7 +47,7 @@ def main():
     '''print(f"FEN of my board object: {FEN}")
     print(f"FEN of stockfish object: {stockfish.get_fen_position()}")
     '''
-    valid_moves = board.generate_pseudo_valid_moves()
+    valid_moves = board.generate_valid_moves()
     print(f"the valid moves of my board are:")
     for move in valid_moves:
         print(f"Piece {board.piece_to_char(board.get_piece_at_index(move[0]))} can move from "

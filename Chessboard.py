@@ -148,7 +148,56 @@ class Chessboard:
         #print(FEN)
         return FEN
 
-    def generate_pseudo_valid_moves(self) -> list[Move]:
+    def is_attacked(self, index: int, attacker_color: str |None = None) -> bool:
+        if attacker_color is None: 
+            if self.squares[index] != 0:
+                attacker_color = self.opposite_color(self.get_i_piece_color(index)) #attacker is opposite color of my square in question
+            else:
+                attacker_color = self.opposite_color(self.turn)
+        rank, file = self.index_to_rankfile(index)
+
+        #check if attacked by knight
+        for delta in [(2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2), (1, 2)]:
+            endrank, endfile = (rank + delta[0], file + delta[1])
+            if 1<=endrank<=8 and 1<=endfile<=8: 
+                knight_move_index_delta = -8*delta[0] + delta[1] # convert from rank and file to index 
+                finalIndex = index + knight_move_index_delta
+                if abs(self.squares[finalIndex]) == KNIGHT:
+                    if self.get_i_piece_color(finalIndex) == attacker_color:
+                        return True
+                    
+        #check diagonal sliding piece attacks
+        for delta in [(1,1), (1,-1), (-1,-1), (-1,1), ]:
+            hit = False
+            cur_rank = rank
+            cur_file = file
+            #valid_bishop_indices = []
+            while not hit: 
+                #rank and file variables
+                new_rank = cur_rank + delta[0]
+                new_file = cur_file + delta[1]
+                if 1<=new_rank<=8 and 1<=new_file<=8: #limits within board
+                    valid_index = self.rankfile_to_index(new_rank, new_file)
+                    target_piece = self.squares[valid_index]
+                    
+                    if target_piece == EMPTY:
+                        cur_rank = new_rank
+                        cur_file = new_file
+                    else:
+                        target_piece_color = self.get_i_piece_color(target_piece)
+                        if target_piece_color == current_piece_color:
+                            hit = True
+                        else: #assume opposite piece color
+                            hit = True  
+                else: #the board limits were reached
+                    hit = True  
+        #check vert/horizontal piece attacks
+        for delta in [(0,1), (1,0), (0,-1), (-1,0)]:
+            hit = False
+
+        return False
+
+    def generate_valid_moves(self) -> list[Move]:
         print0 = False
         print1 = False
         print_moves = False
@@ -159,7 +208,7 @@ class Chessboard:
             if square == 0:
                 if print0: print(i, end=" ") #debugging
                 continue
-            current_piece_color = self.piece_color(square)
+            current_piece_color = self.get_i_piece_color(square)
             if current_piece_color != self.turn:
                 if print0: print(i, end=" ") #debugging
                 continue
@@ -201,7 +250,7 @@ class Chessboard:
                 for capture_index in potential_captures:
                     if print0: print(f"capturable square on {capture_index}")
                     if self.squares[capture_index] != 0: 
-                        if self.piece_color(self.squares[capture_index]) != current_piece_color:
+                        if self.get_i_piece_color(self.squares[capture_index]) != current_piece_color:
                             if print0: print(f"Capturable piece on {capture_index}")
                             if (current_piece_color == WHITE and rank == 7) or (current_piece_color == BLACK and rank == 2):
                                 for promotional_piece in [KNIGHT, BISHOP, ROOK, QUEEN]:
@@ -211,10 +260,11 @@ class Chessboard:
                     elif capture_index == self.en_passant_square:
                         valid_moves.append(Move(i, capture_index, EN_PASSANT, 0))
 
+
             # KNIGHT BEHAVIOR
             elif abs(square) == KNIGHT:
                 if print1: print(f"It's {self.turn}'s turn")
-                if print1: print(f"The acctive piece's color is: {self.piece_color(square)}") 
+                if print1: print(f"The acctive piece's color is: {self.get_i_piece_color(square)}") 
                 knight_move_deltas = [(2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2), (1, 2)]
 
                 for delta in knight_move_deltas: #finding final move positions and checking if on board
@@ -228,7 +278,7 @@ class Chessboard:
                         target_piece = self.squares[finalIndex]
                         if target_piece == EMPTY:
                             valid_moves.append(Move(i, finalIndex, NORMAL, 0))
-                        elif self.piece_color(target_piece) != current_piece_color: #the only thing that changed to generalize to both colors
+                        elif self.get_i_piece_color(target_piece) != current_piece_color: #the only thing that changed to generalize to both colors
                             valid_moves.append(Move(i, finalIndex, CAPTURE, 0))
 
             # ALL BISHOP BEHAVIOR
@@ -253,7 +303,7 @@ class Chessboard:
                                 cur_rank = new_rank
                                 cur_file = new_file
                             else:
-                                target_piece_color = self.piece_color(target_piece)
+                                target_piece_color = self.get_i_piece_color(target_piece)
                                 if target_piece_color == current_piece_color:
                                     hit = True
                                 else: #assume opposite piece color
@@ -284,7 +334,7 @@ class Chessboard:
                                 cur_rank = new_rank
                                 cur_file = new_file
                             else:
-                                target_piece_color = self.piece_color(target_piece)
+                                target_piece_color = self.get_i_piece_color(target_piece)
                                 if target_piece_color == current_piece_color:
                                     hit = True
                                 else: #assume opposite piece color
@@ -315,7 +365,7 @@ class Chessboard:
                                 cur_rank = new_rank
                                 cur_file = new_file
                             else:
-                                target_piece_color = self.piece_color(target_piece)
+                                target_piece_color = self.get_i_piece_color(target_piece)
                                 if target_piece_color == current_piece_color:
                                     hit = True
                                 else: #assume opposite piece color
@@ -337,7 +387,7 @@ class Chessboard:
                         if target_piece == EMPTY:
                             valid_moves.append(Move(i, valid_index, NORMAL, 0))
                         else:
-                            target_piece_color = self.piece_color(target_piece)
+                            target_piece_color = self.get_i_piece_color(target_piece)
                             if target_piece_color == current_piece_color: 
                                 continue
                             else: #assume opposite piece color
@@ -365,7 +415,7 @@ class Chessboard:
         else:  self.make_move_ints_pseudo(first_index, second_index)
             
     def make_move_ints_pseudo(self, start_i: int, end_i: int, promotion_piece: int = -1):
-        for move in self.generate_pseudo_valid_moves(): #will need to be legal moves later
+        for move in self.generate_valid_moves(): #will need to be legal moves later
             if move.start == start_i and move.end == end_i:
                 if move.flag == PROMOTION:
                     if promotion_piece == -1:
@@ -485,7 +535,7 @@ class Chessboard:
         else: return self.squares[index]
 
     @staticmethod
-    def piece_color(piece: int):
+    def get_i_piece_color(piece: int):
         if piece > 0: return WHITE
         elif piece < 0: return BLACK
         elif piece == 0: raise ValueError("This is an empty square, not a piece")
