@@ -149,6 +149,7 @@ class Chessboard:
         return FEN
 
     def is_attacked(self, index: int, attacker_color: str |None = None) -> bool:
+        print0 = True
         if attacker_color is None: 
             if self.squares[index] != 0:
                 attacker_color = self.opposite_color(self.get_i_piece_color(index)) #attacker is opposite color of my square in question
@@ -164,36 +165,55 @@ class Chessboard:
                 finalIndex = index + knight_move_index_delta
                 if abs(self.squares[finalIndex]) == KNIGHT:
                     if self.get_i_piece_color(finalIndex) == attacker_color:
+                        if print0: print(f"There is a {self.piece_to_char(self.squares[finalIndex])} on {finalIndex}, {self.index_to_coords(finalIndex)}"
+                                         f"attacking me on index {index}, {self.index_to_coords(index)}")
                         return True
                     
         #check diagonal sliding piece attacks
-        for delta in [(1,1), (1,-1), (-1,-1), (-1,1), ]:
-            hit = False
-            cur_rank = rank
-            cur_file = file
+        for delta in [(1,1), (1,-1), (-1,-1), (-1,1)]:
+            cur_rank = rank + delta[0]
+            cur_file = file + delta[1]
             #valid_bishop_indices = []
-            while not hit: 
+            while (1<=cur_rank<=8 and 1<=cur_file<=8): #while within board limits
                 #rank and file variables
-                new_rank = cur_rank + delta[0]
-                new_file = cur_file + delta[1]
-                if 1<=new_rank<=8 and 1<=new_file<=8: #limits within board
-                    valid_index = self.rankfile_to_index(new_rank, new_file)
-                    target_piece = self.squares[valid_index]
-                    
-                    if target_piece == EMPTY:
-                        cur_rank = new_rank
-                        cur_file = new_file
-                    else:
-                        target_piece_color = self.get_i_piece_color(target_piece)
-                        if target_piece_color == current_piece_color:
-                            hit = True
-                        else: #assume opposite piece color
-                            hit = True  
-                else: #the board limits were reached
-                    hit = True  
+                valid_index = self.rankfile_to_index(cur_rank, cur_file)
+                target_piece = self.squares[valid_index]
+                if target_piece == EMPTY:
+                    cur_rank += delta[0]
+                    cur_file += delta[1]
+                    continue
+                elif self.get_i_piece_color(valid_index) == attacker_color:
+                    if abs(target_piece) in (BISHOP, QUEEN):
+                        if print0: 
+                            finalIndex = valid_index
+                            print(f"There is a {self.piece_to_char(self.squares[finalIndex])}"
+                                    f" on {finalIndex}, {self.index_to_coords(finalIndex)}"
+                                    f"attacking me on index {index}, {self.index_to_coords(index)}")
+                        return True
+                break
+                        
         #check vert/horizontal piece attacks
         for delta in [(0,1), (1,0), (0,-1), (-1,0)]:
-            hit = False
+            cur_rank = rank + delta[0]
+            cur_file = file + delta[1]
+            #valid_bishop_indices = []
+            while (1<=cur_rank<=8 and 1<=cur_file<=8): #while within board limits
+                #rank and file variables
+                valid_index = self.rankfile_to_index(cur_rank, cur_file)
+                target_piece = self.squares[valid_index]
+                if target_piece == EMPTY:
+                    cur_rank += delta[0]
+                    cur_file += delta[1]
+                    continue
+                elif self.get_i_piece_color(valid_index) == attacker_color:
+                    if abs(target_piece) in (ROOK, QUEEN):
+                        if print0: 
+                            finalIndex = valid_index
+                            print(f"There is a {self.piece_to_char(self.squares[finalIndex])}"
+                                    f" on {finalIndex}, {self.index_to_coords(finalIndex)}"
+                                    f"attacking me on index {index}, {self.index_to_coords(index)}")
+                        return True
+                break
 
         return False
 
@@ -482,8 +502,7 @@ class Chessboard:
             self.halfmove_clock = 0
         else:
             self.halfmove_clock = self.halfmove_clock + 1
-        
-        
+          
     def update_castling_rights(self, start_i: int, end_i: int, moving_piece: int, taken_piece: int):
     #castling checks
         if moving_piece == KING:
@@ -503,7 +522,6 @@ class Chessboard:
         elif taken_piece == -ROOK:
             if end_i == 7: self.castling_rights = self.castling_rights.replace("k", "")
             elif end_i == 0: self.castling_rights = self.castling_rights.replace("q", "")
-        
     
     # print the board to the terminal
     def print_board(self, flipped: bool = False, letters: bool = False):
@@ -637,6 +655,7 @@ class Chessboard:
         self.squares = self.squares
 
         #bunch of not very-useful helper functions
+    
     @staticmethod
     def get_FEN_turn(FEN: str) -> str:
     #example FEN: "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2")
