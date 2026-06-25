@@ -47,11 +47,15 @@ def main():
     '''print(f"FEN of my board object: {FEN}")
     print(f"FEN of stockfish object: {stockfish.get_fen_position()}")
     '''
-    valid_moves = board.generate_valid_moves()
-    print(f"the valid moves of my board are:")
-    for move in valid_moves:
-        print(f"Piece {board.piece_to_char(board.get_piece_at_index(move[0]))} can move from "
-              f"{Chessboard.index_to_coords(move[0])} to {Chessboard.index_to_coords(move[1])} with move type: {move[2]} and promotion {move[3]}")
-
+    test_move_generation = False
+    if test_move_generation:
+        valid_moves = board.generate_valid_moves()
+        print(f"the valid moves of my board are:")
+        for move in valid_moves:
+            print(f"Piece {board.piece_to_char(board.get_piece_at_index(move[0]))} can move from "
+                f"{Chessboard.index_to_coords(move[0])} to {Chessboard.index_to_coords(move[1])} with move type: {move[2]} and promotion {move[3]}")
+    
+    print("\nTesting the is_attacked() function:")
+    print(f"Is g6 attacked?: {board.is_attacked(Chessboard.coords_to_index("g6"), 'w')}")
 if __name__ == "__main__":
     main()

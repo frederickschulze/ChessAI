@@ -162,18 +162,19 @@ class Chessboard:
             endrank, endfile = (rank + delta[0], file + delta[1])
             if 1<=endrank<=8 and 1<=endfile<=8: 
                 knight_move_index_delta = -8*delta[0] + delta[1] # convert from rank and file to index 
-                finalIndex = index + knight_move_index_delta
-                if abs(self.squares[finalIndex]) == KNIGHT:
-                    if self.get_i_piece_color(finalIndex) == attacker_color:
-                        if print0: print(f"There is a {self.piece_to_char(self.squares[finalIndex])} on {finalIndex}, {self.index_to_coords(finalIndex)}"
+                valid_index = index + knight_move_index_delta
+                if abs(self.squares[valid_index]) == KNIGHT:
+                    if self.get_i_piece_color(valid_index) == attacker_color:
+                        if print0: print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, {self.index_to_coords(valid_index)}"
                                          f"attacking me on index {index}, {self.index_to_coords(index)}")
                         return True
                     
-        #check diagonal sliding piece attacks
+        #check diagonal piece attacks (Bishop, Queen, King)
         for delta in [(1,1), (1,-1), (-1,-1), (-1,1)]:
             cur_rank = rank + delta[0]
             cur_file = file + delta[1]
             #valid_bishop_indices = []
+            first_square = True
             while (1<=cur_rank<=8 and 1<=cur_file<=8): #while within board limits
                 #rank and file variables
                 valid_index = self.rankfile_to_index(cur_rank, cur_file)
@@ -181,22 +182,28 @@ class Chessboard:
                 if target_piece == EMPTY:
                     cur_rank += delta[0]
                     cur_file += delta[1]
+                    first_square = False
                     continue
                 elif self.get_i_piece_color(valid_index) == attacker_color:
                     if abs(target_piece) in (BISHOP, QUEEN):
                         if print0: 
-                            finalIndex = valid_index
-                            print(f"There is a {self.piece_to_char(self.squares[finalIndex])}"
-                                    f" on {finalIndex}, {self.index_to_coords(finalIndex)}"
-                                    f"attacking me on index {index}, {self.index_to_coords(index)}")
+                            print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, "
+                                  f"{self.index_to_coords(valid_index)} attacking me on index {index}, {self.index_to_coords(index)}")
                         return True
+                    elif first_square == True and abs(target_piece) == KING:
+                        if print0: 
+                            print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, "
+                                  f"{self.index_to_coords(valid_index)} attacking me on index {index}, {self.index_to_coords(index)}")
+                        return True
+
                 break
-                        
-        #check vert/horizontal piece attacks
+        
+        #check vert/horizontal piece attacks (Rook, Queen, King)
         for delta in [(0,1), (1,0), (0,-1), (-1,0)]:
             cur_rank = rank + delta[0]
             cur_file = file + delta[1]
             #valid_bishop_indices = []
+            first_square = True
             while (1<=cur_rank<=8 and 1<=cur_file<=8): #while within board limits
                 #rank and file variables
                 valid_index = self.rankfile_to_index(cur_rank, cur_file)
@@ -204,17 +211,34 @@ class Chessboard:
                 if target_piece == EMPTY:
                     cur_rank += delta[0]
                     cur_file += delta[1]
+                    first_square = False
                     continue
-                elif self.get_i_piece_color(valid_index) == attacker_color:
+                elif self.get_piece_color(target_piece) == attacker_color:
                     if abs(target_piece) in (ROOK, QUEEN):
                         if print0: 
-                            finalIndex = valid_index
-                            print(f"There is a {self.piece_to_char(self.squares[finalIndex])}"
-                                    f" on {finalIndex}, {self.index_to_coords(finalIndex)}"
-                                    f"attacking me on index {index}, {self.index_to_coords(index)}")
+                            print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, "
+                                  f"{self.index_to_coords(valid_index)} attacking me on index {index}, {self.index_to_coords(index)}")
+                        return True
+                    elif first_square == True and abs(target_piece) == KING:
+                        if print0: 
+                            print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, "
+                                  f"{self.index_to_coords(valid_index)} attacking me on index {index}, {self.index_to_coords(index)}")
                         return True
                 break
-
+        
+        #check for pawn attacks
+        if attacker_color == BLACK: deltas =[(1, -1), (1, 1)]
+        else: deltas = [(-1, -1), (-1, 1)]
+        for delta in deltas:
+            attacker_rank = rank + delta[0]
+            attacker_file = file + delta[1]
+            if 1<=attacker_rank<=8 and 1<=attacker_file<=8:
+                valid_index = self.rankfile_to_index(attacker_rank, attacker_file)
+                attacker_piece = self.squares[valid_index]
+                if abs(attacker_piece) == PAWN and self.get_piece_color(attacker_piece) == attacker_color:
+                    print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, "
+                                  f"{self.index_to_coords(valid_index)} attacking me on index {index}, {self.index_to_coords(index)}")
+                    return True
         return False
 
     def generate_valid_moves(self) -> list[Move]:
@@ -224,11 +248,11 @@ class Chessboard:
         valid_moves = []
 
         #Test en passant self.en_passant_square = self.coords_to_index("e3")
-        for i, square in enumerate(self.squares):
-            if square == 0:
+        for i, square_value in enumerate(self.squares):
+            if square_value == 0:
                 if print0: print(i, end=" ") #debugging
                 continue
-            current_piece_color = self.get_i_piece_color(square)
+            current_piece_color = self.get_piece_color(square_value)
             if current_piece_color != self.turn:
                 if print0: print(i, end=" ") #debugging
                 continue
@@ -236,7 +260,7 @@ class Chessboard:
             rank, file = self.index_to_rankfile(i)
 
             # PAWN BEHAVIOR
-            if abs(square) == PAWN: #white pawn behavior
+            if abs(square_value) == PAWN: #white pawn behavior
                 #checking one forward of pawn
                 if current_piece_color == WHITE: one_forward_square = i-8
                 elif current_piece_color == BLACK: one_forward_square = i+8
@@ -270,7 +294,7 @@ class Chessboard:
                 for capture_index in potential_captures:
                     if print0: print(f"capturable square on {capture_index}")
                     if self.squares[capture_index] != 0: 
-                        if self.get_i_piece_color(self.squares[capture_index]) != current_piece_color:
+                        if self.get_i_piece_color(capture_index) != current_piece_color:
                             if print0: print(f"Capturable piece on {capture_index}")
                             if (current_piece_color == WHITE and rank == 7) or (current_piece_color == BLACK and rank == 2):
                                 for promotional_piece in [KNIGHT, BISHOP, ROOK, QUEEN]:
@@ -282,9 +306,9 @@ class Chessboard:
 
 
             # KNIGHT BEHAVIOR
-            elif abs(square) == KNIGHT:
+            elif abs(square_value) == KNIGHT:
                 if print1: print(f"It's {self.turn}'s turn")
-                if print1: print(f"The acctive piece's color is: {self.get_i_piece_color(square)}") 
+                if print1: print(f"The acctive piece's color is: {self.get_piece_color(square_value)}") 
                 knight_move_deltas = [(2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2), (1, 2)]
 
                 for delta in knight_move_deltas: #finding final move positions and checking if on board
@@ -298,11 +322,11 @@ class Chessboard:
                         target_piece = self.squares[finalIndex]
                         if target_piece == EMPTY:
                             valid_moves.append(Move(i, finalIndex, NORMAL, 0))
-                        elif self.get_i_piece_color(target_piece) != current_piece_color: #the only thing that changed to generalize to both colors
+                        elif self.get_piece_color(target_piece) != current_piece_color: #the only thing that changed to generalize to both colors
                             valid_moves.append(Move(i, finalIndex, CAPTURE, 0))
 
             # ALL BISHOP BEHAVIOR
-            elif abs(square) == BISHOP: 
+            elif abs(square_value) == BISHOP: 
                 #check northwest squares
                 directions = [(1,1), (1,-1), (-1,-1), (-1,1)]
                 for delta in directions:
@@ -323,7 +347,7 @@ class Chessboard:
                                 cur_rank = new_rank
                                 cur_file = new_file
                             else:
-                                target_piece_color = self.get_i_piece_color(target_piece)
+                                target_piece_color = self.get_piece_color(target_piece)
                                 if target_piece_color == current_piece_color:
                                     hit = True
                                 else: #assume opposite piece color
@@ -333,7 +357,7 @@ class Chessboard:
                             hit = True
 
             # ALL ROOK BEHAVIOR
-            elif abs(square) == ROOK: 
+            elif abs(square_value) == ROOK: 
                 #check northwest squares
                 directions = [(0,1), (1,0), (0,-1), (-1,0)]
                 for delta in directions:
@@ -354,7 +378,7 @@ class Chessboard:
                                 cur_rank = new_rank
                                 cur_file = new_file
                             else:
-                                target_piece_color = self.get_i_piece_color(target_piece)
+                                target_piece_color = self.get_piece_color(target_piece)
                                 if target_piece_color == current_piece_color:
                                     hit = True
                                 else: #assume opposite piece color
@@ -364,7 +388,7 @@ class Chessboard:
                             hit = True  
 
             # ALL QUEEN BEHAVIOR
-            elif abs(square) == QUEEN: 
+            elif abs(square_value) == QUEEN: 
                 #check northwest squares
                 directions = [(1,1), (1,-1), (-1,-1), (-1,1), (0,1), (1,0), (0,-1), (-1,0)]
                 for delta in directions:
@@ -385,7 +409,7 @@ class Chessboard:
                                 cur_rank = new_rank
                                 cur_file = new_file
                             else:
-                                target_piece_color = self.get_i_piece_color(target_piece)
+                                target_piece_color = self.get_piece_color(target_piece)
                                 if target_piece_color == current_piece_color:
                                     hit = True
                                 else: #assume opposite piece color
@@ -395,7 +419,7 @@ class Chessboard:
                             hit = True  
 
             # KING BEHAVIOR
-            elif abs(square) == KING: 
+            elif abs(square_value) == KING: 
                 directions = [(1,1), (1,-1), (-1,-1), (-1,1), (0,1), (1,0), (0,-1), (-1,0)]
                 for delta in directions:
                     new_rank = rank + delta[0]
@@ -407,7 +431,7 @@ class Chessboard:
                         if target_piece == EMPTY:
                             valid_moves.append(Move(i, valid_index, NORMAL, 0))
                         else:
-                            target_piece_color = self.get_i_piece_color(target_piece)
+                            target_piece_color = self.get_piece_color(target_piece)
                             if target_piece_color == current_piece_color: 
                                 continue
                             else: #assume opposite piece color
@@ -435,7 +459,9 @@ class Chessboard:
         else:  self.make_move_ints_pseudo(first_index, second_index)
             
     def make_move_ints_pseudo(self, start_i: int, end_i: int, promotion_piece: int = -1):
+        print_moves = False
         for move in self.generate_valid_moves(): #will need to be legal moves later
+            if print_moves: print(move)
             if move.start == start_i and move.end == end_i:
                 if move.flag == PROMOTION:
                     if promotion_piece == -1:
@@ -552,12 +578,18 @@ class Chessboard:
             raise ValueError("The index received is out of range")
         else: return self.squares[index]
 
-    @staticmethod
-    def get_i_piece_color(piece: int):
+    def get_i_piece_color(self, index: int):
+        piece = self.squares[index]
         if piece > 0: return WHITE
         elif piece < 0: return BLACK
-        elif piece == 0: raise ValueError("This is an empty square, not a piece")
-        else: raise ValueError("How the hek did this happen?")
+        else: raise ValueError("This is an empty square, not a piece")
+
+    @staticmethod
+    def get_piece_color(piece: int) -> str:
+        if piece == 0: raise ValueError("This piece is 0")
+        elif piece > 0: return WHITE
+        else: return BLACK
+    
     
     @staticmethod
     def opposite_color(color: str) -> str:
