@@ -336,7 +336,6 @@ class Chessboard:
                     elif capture_index == self.en_passant_square:
                         valid_moves.append(Move(i, capture_index, EN_PASSANT, 0))
 
-
             # KNIGHT BEHAVIOR
             elif abs(square_value) == KNIGHT:
                 if print1: print(f"It's {self.turn}'s turn")
@@ -468,6 +467,26 @@ class Chessboard:
                                 continue
                             else: #assume opposite piece color
                                 valid_moves.append(Move(i, valid_index, CAPTURE, 0))
+                #add castling (full legality check here since it's more complicated)
+                if current_piece_color == WHITE:
+                    king_side = 'K'
+                    queen_side = 'Q'
+                else:
+                    king_side = 'k'
+                    queen_side = 'q'
+                enemy_color = self.opposite_color(current_piece_color)
+                if king_side in self.castling_rights:
+                    if self.squares[i+1] == EMPTY and self.squares[i+2] == EMPTY:
+                        if not (self.is_attacked(i, enemy_color) or
+                                (self.is_attacked(i+1, enemy_color)) or
+                                (self.is_attacked(i+2, enemy_color))):
+                            valid_moves.append(Move(i, i+2, CASTLE, 0))
+                if queen_side in self.castling_rights:
+                    if self.squares[i-1] == EMPTY and self.squares[i-2] == EMPTY and self.squares[i-3] == EMPTY:
+                        if not (self.is_attacked(i, enemy_color) or
+                                (self.is_attacked(i-1, enemy_color)) or
+                                (self.is_attacked(i-2, enemy_color))):
+                            valid_moves.append(Move(i, i-2, CASTLE, 0))                
             
         #print() #debugging
         #print(f"pieces that can move: {pieces_that_can_moove}")

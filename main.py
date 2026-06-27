@@ -30,24 +30,28 @@ def main():
     print()    
     FEN = board.generate_FEN()
     print(f"The FEN generated is: {FEN}")
-    print("\nNow making the move bc4, nc6, qf3, qe7")
+    print("\nNow making the move bc4, nc6, qf3, qe7, nh3, a6, O-O")
     board.make_move_coords("f1c4")
     board.make_move_coords("b8c6")
     board.make_move_coords("d1f3")
     board.make_move_coords("d8e7")
+    board.make_move_coords("g1h3")
+    board.make_move_coords("a7a6")
+    board.make_move_coords("e1g1")
     board.print_board(letters = True)
     FEN = board.generate_FEN()
-    print(f"The FEN generated is: {FEN}")
+    print(f"The FEN generated for my board is: {FEN}")
 
-    print("This is a test of the stockfish library")
-    stockfish.make_moves_from_start(["e2e4", "e7e6", "d2d4", "d7d5"]) #
-    print(f"stonkfish after making some moves: {stockfish.get_fen_position()}")
-    print(f"stonkfish best move now: {stockfish.get_best_move()}\n")
-    
-    '''print(f"FEN of my board object: {FEN}")
+    stockfish_test = False
+    if stockfish_test == True:
+        print("This is a test of the stockfish library")
+        stockfish.make_moves_from_start(["e2e4", "e7e6", "d2d4", "d7d5"]) #
+        print(f"stonkfish after making some moves: {stockfish.get_fen_position()}")
+        print(f"stonkfish best move now: {stockfish.get_best_move()}\n")
+    '''
     print(f"FEN of stockfish object: {stockfish.get_fen_position()}")
     '''
-    test_move_generation = False
+    test_move_generation = True
     if test_move_generation:
         valid_moves = board.generate_valid_moves()
         print(f"the valid moves of my board are:")
