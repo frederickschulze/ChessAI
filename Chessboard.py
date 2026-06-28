@@ -169,7 +169,7 @@ class Chessboard:
         return self.is_attacked(king_index, attacker_color)
         
     def is_attacked(self, index: int, attacker_color: str|None = None, piece_moved: int|None = None) -> bool:
-        print0 = True
+        print0 = False
         if attacker_color is None: 
             if self.squares[index] != 0:
                 attacker_color = self.opposite_color(self.get_i_piece_color(index)) #attacker is opposite color of my square in question
@@ -256,8 +256,8 @@ class Chessboard:
                 valid_index = self.rankfile_to_index(attacker_rank, attacker_file)
                 attacker_piece = self.squares[valid_index]
                 if abs(attacker_piece) == PAWN and self.get_piece_color(attacker_piece) == attacker_color:
-                    print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, "
-                                  f"{self.index_to_coords(valid_index)} attacking me on index {index}, {self.index_to_coords(index)}")
+                    if print0: print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, "
+                                     f"{self.index_to_coords(valid_index)} attacking me on index {index}, {self.index_to_coords(index)}")
                     return True
         return False
 
@@ -496,6 +496,34 @@ class Chessboard:
                         f"{self.index_to_coords(move[0])} to {self.index_to_coords(move[1])} with move type: {move[2]}")
         return valid_moves
       
+    def coords_to_Move(self, coords: str):
+        if len(coords) not in (4,5): raise ValueError("Invlaid coords received")
+        first_coord = coords[0:2]
+        second_coord = coords[2:4]
+        start_i = self.coords_to_index(first_coord)
+        end_i = self.coords_to_index(second_coord)
+        if len(coords) == 4: #
+            for move in self.generate_legal_moves():
+                if move.start == start_i and move.end == end_i:
+                    if move.flag == PROMOTION:
+                        raise ValueError("No promotion provided ")
+                    return move
+        if len(coords) == 5:
+            promotion_piece_char = coords[-1]
+            if promotion_piece_char.upper() not in 'NBRQ':
+                raise ValueError("Invalid promotion piece received")
+            # PIECE_TO_CHAR = ".PNBRQK"
+            promotion_piece_int = PIECE_TO_CHAR.index(promotion_piece_char.upper())
+            for move in self.generate_legal_moves(): #will need to be legal moves later
+                if move.start == start_i and move.end == end_i:
+                    if move.flag == PROMOTION:
+                        if promotion_piece_int == move.promotion: 
+                            return move
+                    else: raise ValueError("promotion piece given for non-promotion move")
+        #if no move is found
+        self.print_board()
+        raise ValueError(f"No legal move was found for {coords}.")
+
     def make_move_coords(self, coords: str):
         if len(coords) != 4 and len(coords) !=5: raise ValueError("Invlaid coords received")
         first_coord = coords[0:2]
@@ -504,6 +532,8 @@ class Chessboard:
         second_index = self.coords_to_index(second_coord)
         if len(coords) == 5:
             promotion_piece_char = coords[-1]
+            if promotion_piece_char.upper() not in PIECE_TO_CHAR:
+                raise ValueError("Invalid promotion piece received")
             # PIECE_TO_CHAR = ".PNBRQK"
             promotion_piece_int = PIECE_TO_CHAR.index(promotion_piece_char.upper())
             self.make_move_ints(first_index, second_index, promotion_piece_int)

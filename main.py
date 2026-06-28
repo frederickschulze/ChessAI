@@ -1,10 +1,12 @@
-from Chessboard import Chessboard
+from chessboard import Chessboard
 from stockfish import Stockfish
+from chessgame import ChessGame
+from players import HumanPlayer, StockfishPlayer
 
 def main():
 
     stockfish = Stockfish(path="/Users/frede/Documents/Code Projects/ChessAI/engines/stockfish/stockfish-windows-x86-64-avx2.exe", 
-                          depth=18, parameters={"Threads": 4, "Hash": 4096,"Minimum Thinking Time": 100})
+                          depth=18, parameters={"Threads": 4, "Hash": 4096, "Minimum Thinking Time": 100})
     #stockfish = Stockfish(r"C:\Users\frede\Documents\Code Projects\ChessAI\engines\stockfish\stockfish-windows-x86-64-avx2.exe")
 
     #board = Chessboard.standard()
@@ -61,5 +63,12 @@ def main():
     
     print("\nTesting the is_attacked() function:")
     print(f"Is g6 attacked?: {board.is_attacked(Chessboard.coords_to_index("g6"), 'w')}")
+
+    player1 = HumanPlayer()
+    player2 = StockfishPlayer()
+    player3 = StockfishPlayer()
+    gameboard = board.standard()
+    game = ChessGame(gameboard, player3, player2)
+    game.play_game()
 if __name__ == "__main__":
     main()
