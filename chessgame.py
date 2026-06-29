@@ -1,5 +1,6 @@
 from players import *
 from chessboard import *
+import time
 
 class ChessGame:
     colorDict = {'w': "White", 'b': "Black"}
@@ -9,9 +10,14 @@ class ChessGame:
         self.black_player = black_player
         self.board = chessboard
     
-    def play_game(self):
+    def play_game(self, millisec_per_turn: int = 300, flip_on_turn: bool = False):
         while True:
-            self.board.print_board(False, True)
+            time.sleep(millisec_per_turn/1000)
+            if flip_on_turn == False:
+                board_flip = False
+            else:
+                board_flip = True if self.board.turn == BLACK else False
+            self.board.print_board(flipped=board_flip, letters = True)
             print()
             legal_moves = self.board.generate_legal_moves()
             if not legal_moves:
@@ -31,4 +37,5 @@ class ChessGame:
             else: raise ValueError("Invalid board.turn state")
             
             self.board.make_move(move_to_make)
+
             

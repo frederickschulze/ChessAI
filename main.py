@@ -69,6 +69,6 @@ def main():
     player3 = StockfishPlayer()
     gameboard = board.standard()
     game = ChessGame(gameboard, player3, player2)
-    game.play_game()
+    game.play_game(flip_on_turn=False)
 if __name__ == "__main__":
     main()

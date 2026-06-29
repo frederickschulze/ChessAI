@@ -632,7 +632,7 @@ class Chessboard:
     
     # print the board to the terminal
     def print_board(self, flipped: bool = False, letters: bool = False):
-        if flipped: local_flipped_squares = self.flip_vertically(self.squares)
+        if flipped: local_flipped_squares = self.flip_vertically(self.squares) #self.flip_horizontally(self.flip_vertically(self.squares))
         else: local_flipped_squares = self.squares
 
         for i, piece_num in enumerate(local_flipped_squares):
@@ -696,12 +696,26 @@ class Chessboard:
     @staticmethod
     def flip_vertically(squares: list[int]) -> list[int]:
         if len(squares) != 64:
-            raise ValueError("The intput layout does not have 64 squares.")
+            raise ValueError("The input board does not have 64 squares.")
         
         flippedSquares = [0]*64
         for rank in range(0,8):
             flippedSquares[8*rank:(8*(rank+1))] = squares[(8*(7-rank)):(8*(8-rank))]
         return flippedSquares
+
+    @staticmethod
+    def flip_horizontally(squares: list[int]) -> list[int]:
+        if len(squares) != 64: 
+            raise ValueError("The input board does not have 64 squares.")
+        flippedSquares = [0] * 64
+
+        for rank in range(0, 8):
+            row_start = 8 * rank
+            row_end = 8 * (rank + 1)
+            flippedSquares[row_start:row_end] = squares[row_start:row_end][::-1]
+
+        return flippedSquares
+
 
     #gives rank and file indexed from 1
     @staticmethod
