@@ -167,7 +167,179 @@ class Chessboard:
         king_index = self.squares.index(king_to_find)
         attacker_color = self.opposite_color(king_color)
         return self.is_attacked(king_index, attacker_color)
-        
+
+    def chess_notation_to_coords(self, notation: str) -> str:
+        if len(notation) == 2:
+            final_coord = notation
+            final_index = self.coords_to_index(final_coord)
+            
+        if is_attacked_by_pawn(final_index)
+
+        raise NotImplementedError
+
+    def is_attacked_by_pawn(self, index:int, attacker_color: str|None = None, piece_moved: int|None = None, 
+                              rank: int|None = None, file: int|None = None) -> bool:
+           #check for pawn attacks
+        print_p = False
+        if attacker_color is None: 
+            if self.squares[index] != EMPTY:
+                attacker_color = self.opposite_color(self.get_i_piece_color(index)) #attacker is opposite color of my square in question
+            else:
+                attacker_color = self.opposite_color(self.turn)
+        if rank is None or file is None:
+            rank, file = self.index_to_rankfile(index)
+        if attacker_color == BLACK: deltas =[(1, -1), (1, 1)]
+        else: deltas = [(-1, -1), (-1, 1)]
+        for delta in deltas:
+            attacker_rank = rank + delta[0]
+            attacker_file = file + delta[1]
+            if 1<=attacker_rank<=8 and 1<=attacker_file<=8:
+                valid_index = self.rankfile_to_index(attacker_rank, attacker_file)
+                attacker_piece = self.squares[valid_index]
+                if abs(attacker_piece) == PAWN and self.get_piece_color(attacker_piece) == attacker_color:
+                    if print_p: print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, "
+                                     f"{self.index_to_coords(valid_index)} attacking me on index {index}, {self.index_to_coords(index)}")
+                    return True
+        return False
+
+    def is_attacked_by_king(self, index:int, attacker_color: str|None = None, piece_moved: int|None = None, 
+                              rank: int|None = None, file: int|None = None) -> bool:
+        print_n = False
+        if attacker_color is None: 
+            if self.squares[index] != EMPTY:
+                attacker_color = self.opposite_color(self.get_i_piece_color(index)) #attacker is opposite color of my square in question
+            else:
+                attacker_color = self.opposite_color(self.turn)
+        if rank is None or file is None:
+            rank, file = self.index_to_rankfile(index)
+        for delta in [(1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0), (-1, 1), (0, 1)]:
+            endrank, endfile = (rank + delta[0], file + delta[1])
+            if 1<=endrank<=8 and 1<=endfile<=8: 
+                knight_move_index_delta = -8*delta[0] + delta[1] # convert from rank and file to index 
+                valid_index = index + knight_move_index_delta
+                if abs(self.squares[valid_index]) == KING:
+                    if self.get_i_piece_color(valid_index) == attacker_color:
+                        if print_n: print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, {self.index_to_coords(valid_index)}"
+                                        f"attacking me on index {index}, {self.index_to_coords(index)}")
+                        return True
+        return False
+
+    def is_attacked_by_knight(self, index:int, attacker_color: str|None = None, piece_moved: int|None = None, 
+                              rank: int|None = None, file: int|None = None) -> bool:
+        print_n = False
+        if attacker_color is None: 
+            if self.squares[index] != EMPTY:
+                attacker_color = self.opposite_color(self.get_i_piece_color(index)) #attacker is opposite color of my square in question
+            else:
+                attacker_color = self.opposite_color(self.turn)
+        if rank is None or file is None:
+            rank, file = self.index_to_rankfile(index)
+        for delta in [(2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2), (1, 2)]:
+            endrank, endfile = (rank + delta[0], file + delta[1])
+            if 1<=endrank<=8 and 1<=endfile<=8: 
+                knight_move_index_delta = -8*delta[0] + delta[1] # convert from rank and file to index 
+                valid_index = index + knight_move_index_delta
+                if abs(self.squares[valid_index]) == KNIGHT:
+                    if self.get_i_piece_color(valid_index) == attacker_color:
+                        if print_n: print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, {self.index_to_coords(valid_index)}"
+                                        f"attacking me on index {index}, {self.index_to_coords(index)}")
+                        return True
+        return False
+
+    def is_attacked_by_bishop(self, index:int, attacker_color: str|None = None, piece_moved: int|None = None, 
+                            rank: int|None = None, file: int|None = None) -> bool:
+        print_b = False
+        if attacker_color is None: 
+            if self.squares[index] != EMPTY:
+                attacker_color = self.opposite_color(self.get_i_piece_color(index)) #attacker is opposite color of my square in question
+            else:
+                attacker_color = self.opposite_color(self.turn)
+        if rank is None or file is None:
+            rank, file = self.index_to_rankfile(index)
+
+        for delta in [(1,1), (1,-1), (-1,-1), (-1,1)]:
+            cur_rank = rank + delta[0]
+            cur_file = file + delta[1]
+            #valid_bishop_indices = []
+            while (1<=cur_rank<=8 and 1<=cur_file<=8): #while within board limits
+                #rank and file variables
+                valid_index = self.rankfile_to_index(cur_rank, cur_file)
+                target_piece = self.squares[valid_index]
+                if target_piece == EMPTY:
+                    cur_rank += delta[0]
+                    cur_file += delta[1]
+                    continue
+                elif self.get_i_piece_color(valid_index) == attacker_color:
+                    if abs(target_piece) == BISHOP:
+                        if print_b: 
+                            print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, "
+                                f"{self.index_to_coords(valid_index)} attacking me on index {index}, {self.index_to_coords(index)}")
+                        return True
+                break
+        return False
+    
+    def is_attacked_by_rook(self, index:int, attacker_color: str|None = None, piece_moved: int|None = None, 
+                        rank: int|None = None, file: int|None = None) -> bool:
+        print_r = False
+        if attacker_color is None: 
+            if self.squares[index] != EMPTY:
+                attacker_color = self.opposite_color(self.get_i_piece_color(index)) #attacker is opposite color of my square in question
+            else:
+                attacker_color = self.opposite_color(self.turn)
+        if rank is None or file is None:
+            rank, file = self.index_to_rankfile(index)
+
+        for delta in [(0,1), (1,0), (0,-1), (-1,0)]:
+            cur_rank = rank + delta[0]
+            cur_file = file + delta[1]
+            while (1<=cur_rank<=8 and 1<=cur_file<=8): #while within board limits
+                #rank and file variables
+                valid_index = self.rankfile_to_index(cur_rank, cur_file)
+                target_piece = self.squares[valid_index]
+                if target_piece == EMPTY:
+                    cur_rank += delta[0]
+                    cur_file += delta[1]
+                    continue
+                elif self.get_i_piece_color(valid_index) == attacker_color:
+                    if abs(target_piece) == ROOK:
+                        if print_r: 
+                            print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, "
+                                f"{self.index_to_coords(valid_index)} attacking me on index {index}, {self.index_to_coords(index)}")
+                        return True
+                break #if it's not empty and not a valid enemy piece
+        return False
+    
+    def is_attacked_by_queen(self, index:int, attacker_color: str|None = None, piece_moved: int|None = None, 
+                    rank: int|None = None, file: int|None = None) -> bool:
+        print_q = False
+        if attacker_color is None: 
+            if self.squares[index] != EMPTY:
+                attacker_color = self.opposite_color(self.get_i_piece_color(index)) #attacker is opposite color of my square in question
+            else:
+                attacker_color = self.opposite_color(self.turn)
+        if rank is None or file is None:
+            rank, file = self.index_to_rankfile(index)
+
+        for delta in [(1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0), (-1, 1), (0, 1)]:
+            cur_rank = rank + delta[0]
+            cur_file = file + delta[1]
+            while (1<=cur_rank<=8 and 1<=cur_file<=8): #while within board limits
+                #rank and file variables
+                valid_index = self.rankfile_to_index(cur_rank, cur_file)
+                target_piece = self.squares[valid_index]
+                if target_piece == EMPTY:
+                    cur_rank += delta[0]
+                    cur_file += delta[1]
+                    continue
+                elif self.get_i_piece_color(valid_index) == attacker_color:
+                    if abs(target_piece) == QUEEN:
+                        if print_q: 
+                            print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, "
+                                f"{self.index_to_coords(valid_index)} attacking me on index {index}, {self.index_to_coords(index)}")
+                        return True
+                break #if it's not empty and not a valid enemy piece
+        return False
+
     def is_attacked(self, index: int, attacker_color: str|None = None, piece_moved: int|None = None) -> bool:
         print0 = False
         if attacker_color is None: 
@@ -496,6 +668,9 @@ class Chessboard:
                         f"{self.index_to_coords(move[0])} to {self.index_to_coords(move[1])} with move type: {move[2]}")
         return valid_moves
       
+
+
+
     def coords_to_Move(self, coords: str):
         if len(coords) not in (4,5): raise ValueError("Invlaid coords received")
         first_coord = coords[0:2]
@@ -632,7 +807,7 @@ class Chessboard:
     
     # print the board to the terminal
     def print_board(self, flipped: bool = False, letters: bool = False):
-        if flipped: local_flipped_squares = self.flip_vertically(self.squares) #self.flip_horizontally(self.flip_vertically(self.squares))
+        if flipped: local_flipped_squares = self.flip_horizontally(self.flip_vertically(self.squares))
         else: local_flipped_squares = self.squares
 
         for i, piece_num in enumerate(local_flipped_squares):

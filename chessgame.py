@@ -10,15 +10,13 @@ class ChessGame:
         self.black_player = black_player
         self.board = chessboard
     
+
     def play_game(self, millisec_per_turn: int = 300, flip_on_turn: bool = False):
+        board_flip = flip_on_turn and (self.board.turn == BLACK) 
+        self.board.print_board(flipped = board_flip, letters = True)
+        print()
         while True:
             time.sleep(millisec_per_turn/1000)
-            if flip_on_turn == False:
-                board_flip = False
-            else:
-                board_flip = True if self.board.turn == BLACK else False
-            self.board.print_board(flipped=board_flip, letters = True)
-            print()
             legal_moves = self.board.generate_legal_moves()
             if not legal_moves:
                 if self.board.is_in_check(self.board.turn):
@@ -37,5 +35,10 @@ class ChessGame:
             else: raise ValueError("Invalid board.turn state")
             
             self.board.make_move(move_to_make)
+            #printing the board (remember make_move just flipped the turn)
+            board_flip = flip_on_turn and (self.board.turn == WHITE) 
+            self.board.print_board(flipped=board_flip, letters = True)
+            print()
+            
 
             
