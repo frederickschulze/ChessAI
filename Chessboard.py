@@ -174,9 +174,11 @@ class Chessboard:
             final_coord = notation[1:]
             final_index = self.coords_to_index(final_coord)
             if notation[0].upper() == "N":
-                if self.is_attacked_by_knight(index = final_index, attacker_color=self.turn):
-
-
+                attacked_by_knight = self.is_attacked_by_knight(index = final_index, attacker_color=self.turn)
+                if attacked_by_knight[0]:
+                    starting_coord = self.index_to_coords(attacked_by_knight[1])
+                    return starting_coord + final_coord
+        
         return "not finished"
 
     def is_movable_by_pawn(self, index:int, moving_color: str|None = None, rank: int|None = None, file: int|None = None) -> tuple[bool, int]:
@@ -270,8 +272,8 @@ class Chessboard:
                     if self.get_i_piece_color(valid_index) == attacker_color:
                         if print_n: print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, {self.index_to_coords(valid_index)}"
                                         f"attacking me on index {index}, {self.index_to_coords(index)}")
-                        return True, valid_index
-        return False, valid_index
+                        return (True, valid_index)
+        return (False, -1)
 
     def is_attacked_by_bishop(self, index:int, attacker_color: str|None = None, rank: int|None = None, file: int|None = None) -> bool:
         print_b = False
