@@ -24,7 +24,7 @@ class StockfishPlayer(Player):
     def __init__(self, stockfish: Stockfish | None = None):
         if stockfish == None:
             self.stockfish = Stockfish(path="/Users/frede/Documents/Code Projects/ChessAI/engines/stockfish/stockfish-windows-x86-64-avx2.exe", 
-                          depth=18, parameters={"Threads": 4, "Hash": 4096, "Minimum Thinking Time": 500})
+                          depth=18, parameters={"Threads": 4, "Hash": 4096, "Minimum Thinking Time": 100})
         else: self.stockfish = stockfish
 
     def choose_move(self, board: Chessboard) -> Move:

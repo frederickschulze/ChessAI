@@ -11,7 +11,7 @@ class ChessGame:
         self.board = chessboard
     
 
-    def play_game(self, millisec_per_turn: int = 300, flip_on_turn: bool = False):
+    def play_game(self, millisec_per_turn: int = 200, flip_on_turn: bool = False):
         board_flip = flip_on_turn and (self.board.turn == BLACK) 
         self.board.print_board(flipped = board_flip, letters = True)
         print()

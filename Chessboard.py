@@ -158,27 +158,56 @@ class Chessboard:
         #print(FEN)
         return FEN
 
-    def is_in_check(self, king_color) -> bool:
-        if king_color == WHITE: 
-            king_to_find = KING
-        elif king_color == BLACK: 
-            king_to_find = -KING
-        else: raise ValueError("You did something wrong buddy")
-        king_index = self.squares.index(king_to_find)
-        attacker_color = self.opposite_color(king_color)
-        return self.is_attacked(king_index, attacker_color)
-
-    def chess_notation_to_coords(self, notation: str) -> str:
+    def notation_to_coords(self, notation: str) -> str:
+        #need to figure out what chess notation is for a pawn promotion
+        
         if len(notation) == 2:
             final_coord = notation
             final_index = self.coords_to_index(final_coord)
-            
-        if is_attacked_by_pawn(final_index)
+            movable_by_pawn = self.is_movable_by_pawn(final_index)
+            if movable_by_pawn[0]:#, moving_color = self.turn):
+                starting_coord = self.index_to_coords(movable_by_pawn[1])
+                return starting_coord + final_coord
+            else: raise ValueError("Invalid chess notation entered")
+        
+        elif len(notation)==3:
+            final_coord = notation[1:]
+            final_index = self.coords_to_index(final_coord)
+            if notation[0].upper() == "N":
+                if self.is_attacked_by_knight(index = final_index, attacker_color=self.turn):
 
-        raise NotImplementedError
 
-    def is_attacked_by_pawn(self, index:int, attacker_color: str|None = None, piece_moved: int|None = None, 
-                              rank: int|None = None, file: int|None = None) -> bool:
+        return "not finished"
+
+    def is_movable_by_pawn(self, index:int, moving_color: str|None = None, rank: int|None = None, file: int|None = None) -> tuple[bool, int]:
+        #check for pawn attacks
+        print_p = False
+        if moving_color is None: 
+            if self.squares[index] != EMPTY:
+                moving_color = self.opposite_color(self.get_i_piece_color(index)) #attacker is opposite color of my square in question
+            else:
+                moving_color = self.turn
+        if rank is None or file is None:
+            rank, file = self.index_to_rankfile(index)
+        if moving_color == BLACK: 
+            deltas =[(1, 0)]
+            if rank == 5: deltas.append((2,0))
+        else: #moving_color is white:
+            deltas = [(-1, 0)]
+            if rank == 4: deltas.append((-2,0))
+        for delta in deltas:
+            attacker_rank = rank + delta[0]
+            attacker_file = file + delta[1]
+            if 1<=attacker_rank<=8 and 1<=attacker_file<=8:
+                valid_index = self.rankfile_to_index(attacker_rank, attacker_file)
+                attacker_piece = self.squares[valid_index]
+                if abs(attacker_piece) == PAWN and self.get_piece_color(attacker_piece) == moving_color:
+                    if print_p: print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, "
+                                    f"{self.index_to_coords(valid_index)} attacking me on index {index}, {self.index_to_coords(index)}")
+                    return (True, valid_index)
+        return (False, -1)
+
+    def is_attacked_by_pawn(self, index:int, attacker_color: str|None = None, rank: int|None = None, file: int|None = None) -> bool:
            #check for pawn attacks
         print_p = False
         if attacker_color is None: 
@@ -202,8 +231,7 @@ class Chessboard:
                     return True
         return False
 
-    def is_attacked_by_king(self, index:int, attacker_color: str|None = None, piece_moved: int|None = None, 
-                              rank: int|None = None, file: int|None = None) -> bool:
+    def is_attacked_by_king(self, index:int, attacker_color: str|None = None, rank: int|None = None, file: int|None = None) -> bool:
         print_n = False
         if attacker_color is None: 
             if self.squares[index] != EMPTY:
@@ -224,8 +252,7 @@ class Chessboard:
                         return True
         return False
 
-    def is_attacked_by_knight(self, index:int, attacker_color: str|None = None, piece_moved: int|None = None, 
-                              rank: int|None = None, file: int|None = None) -> bool:
+    def is_attacked_by_knight(self, index:int, attacker_color: str|None = None, rank: int|None = None, file: int|None = None) -> tuple[bool, int]:
         print_n = False
         if attacker_color is None: 
             if self.squares[index] != EMPTY:
@@ -243,11 +270,10 @@ class Chessboard:
                     if self.get_i_piece_color(valid_index) == attacker_color:
                         if print_n: print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, {self.index_to_coords(valid_index)}"
                                         f"attacking me on index {index}, {self.index_to_coords(index)}")
-                        return True
-        return False
+                        return True, valid_index
+        return False, valid_index
 
-    def is_attacked_by_bishop(self, index:int, attacker_color: str|None = None, piece_moved: int|None = None, 
-                            rank: int|None = None, file: int|None = None) -> bool:
+    def is_attacked_by_bishop(self, index:int, attacker_color: str|None = None, rank: int|None = None, file: int|None = None) -> bool:
         print_b = False
         if attacker_color is None: 
             if self.squares[index] != EMPTY:
@@ -278,8 +304,7 @@ class Chessboard:
                 break
         return False
     
-    def is_attacked_by_rook(self, index:int, attacker_color: str|None = None, piece_moved: int|None = None, 
-                        rank: int|None = None, file: int|None = None) -> bool:
+    def is_attacked_by_rook(self, index:int, attacker_color: str|None = None, rank: int|None = None, file: int|None = None) -> bool:
         print_r = False
         if attacker_color is None: 
             if self.squares[index] != EMPTY:
@@ -309,8 +334,7 @@ class Chessboard:
                 break #if it's not empty and not a valid enemy piece
         return False
     
-    def is_attacked_by_queen(self, index:int, attacker_color: str|None = None, piece_moved: int|None = None, 
-                    rank: int|None = None, file: int|None = None) -> bool:
+    def is_attacked_by_queen(self, index:int, attacker_color: str|None = None, rank: int|None = None, file: int|None = None) -> bool:
         print_q = False
         if attacker_color is None: 
             if self.squares[index] != EMPTY:
@@ -340,7 +364,17 @@ class Chessboard:
                 break #if it's not empty and not a valid enemy piece
         return False
 
-    def is_attacked(self, index: int, attacker_color: str|None = None, piece_moved: int|None = None) -> bool:
+    def is_in_check(self, king_color) -> bool:
+        if king_color == WHITE: 
+            king_to_find = KING
+        elif king_color == BLACK: 
+            king_to_find = -KING
+        else: raise ValueError("You did something wrong buddy")
+        king_index = self.squares.index(king_to_find)
+        attacker_color = self.opposite_color(king_color)
+        return self.is_attacked(king_index, attacker_color)
+
+    def is_attacked(self, index: int, attacker_color: str|None = None) -> bool:
         print0 = False
         if attacker_color is None: 
             if self.squares[index] != 0:

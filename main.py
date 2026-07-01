@@ -53,7 +53,7 @@ def main():
     '''
     print(f"FEN of stockfish object: {stockfish.get_fen_position()}")
     '''
-    test_move_generation = True
+    test_move_generation = False
     if test_move_generation:
         valid_moves = board.generate_valid_moves()
         print(f"the valid moves of my board are:")
@@ -62,13 +62,22 @@ def main():
                 f"{Chessboard.index_to_coords(move[0])} to {Chessboard.index_to_coords(move[1])} with move type: {move[2]} and promotion {move[3]}")
     
     print("\nTesting the is_attacked() function:")
-    print(f"Is g6 attacked?: {board.is_attacked(Chessboard.coords_to_index("g6"), 'w')}")
+    coord = "g6"
+    print(f"Is {coord} attacked?: {board.is_attacked(Chessboard.coords_to_index(coord), 'w')}\n")
+    
+    test_chess_notation = True
+    if test_chess_notation:
+        test_coord = "f5"
+        print(f"The board.notation_to_coords('{test_coord}') returns {board.notation_to_coords(test_coord)}")
 
-    player1 = HumanPlayer()
-    player2 = StockfishPlayer()
-    player3 = StockfishPlayer()
-    gameboard = board.standard()
-    game = ChessGame(gameboard, player3, player2)
-    game.play_game(flip_on_turn=True)
+    play_game_test = False
+    if play_game_test:
+        player1 = HumanPlayer()
+        player2 = StockfishPlayer()
+        player3 = StockfishPlayer()
+        gameboard = board.standard()
+        game = ChessGame(gameboard, player3, player2)
+        game.play_game(flip_on_turn=False)
+
 if __name__ == "__main__":
     main()
