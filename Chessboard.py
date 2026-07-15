@@ -1,6 +1,28 @@
 # This file describes the chessboard class
 import numpy as np
 from typing import NamedTuple
+import re
+
+SAN_REGEX = re.compile(
+    r"^(?:"
+    r"(?P<castle>O-O-O|O-O|0-0-0|0-0)"
+    r"|"
+    r"(?P<piece>[KQRBN])?"
+    r"(?P<origin_file>[a-h])?"
+    r"(?P<origin_rank>[1-8])?"
+    r"(?P<capture>x)?"
+    r"(?P<destination>[a-h][1-8])"
+    r"(?P<promotion>=?[QRBN])?"
+    r"(?P<check>[+#])?"
+    r")$"
+)
+
+CHESS_NOTE_REGEX = re.compile(r"^(?:(?P<castle>O-O-O|O-O|0-0-0|0-0)|"
+                              r"(?P<piece>[PNBRQK])?"
+                              r"(?P<origin_file>[a-h])?(?P<origin_rank>[1-8])?"
+                              r"(?P<capture>x)(?P<destination>[a-h][1-8])"
+                              r"(?P<promotion>=?[QRBN])?(?P<check>[+#])?)$"
+)
 
 #Player's turn constants
 WHITE = 'w'
@@ -158,27 +180,45 @@ class Chessboard:
         #print(FEN)
         return FEN
 
+
+
     def notation_to_coords(self, notation: str) -> str:
         #need to figure out what chess notation is for a pawn promotion
-        
-        if len(notation) == 2:
+
+        if notation in ["O-O","O - O"]:
+            if self.turn == WHITE: return "e1g1"
+            elif self.turn == BLACK: return "e8g8"
+            else: raise ValueError("Turn is wrong")
+        elif notation in ["O-O-O","O - O - O"]:
+            if self.turn == WHITE: return "e1c1"
+            elif self.turn == BLACK: return "e8c8"
+            else: raise ValueError("Turn is wrong") 
+
+        elif len(notation) == 2:
             final_coord = notation
             final_index = self.coords_to_index(final_coord)
             movable_by_pawn = self.is_movable_by_pawn(final_index)
             if movable_by_pawn[0]:#, moving_color = self.turn):
                 starting_coord = self.index_to_coords(movable_by_pawn[1])
                 return starting_coord + final_coord
-            else: raise ValueError("Invalid chess notation entered")
-        
-        elif len(notation)==3:
+            else: raise ValueError(f"Invalid chess notation {notation} entered")
+
+        elif len(notation) == 3:
+            piece = notation[0].upper()
+            if piece not in PIECE_TO_CHAR:
+                raise ValueError("I did not understand the notation")
             final_coord = notation[1:]
             final_index = self.coords_to_index(final_coord)
-            if notation[0].upper() == "N":
+            if piece == KNIGHT:
                 attacked_by_knight = self.is_attacked_by_knight(index = final_index, attacker_color=self.turn)
                 if attacked_by_knight[0]:
                     starting_coord = self.index_to_coords(attacked_by_knight[1])
                     return starting_coord + final_coord
-        
+            else: raise ValueError(f"Invalid chess notation {notation} entered")
+
+        elif len(notation) == 4:
+            print("haha")
+
         return "not finished"
 
     def is_movable_by_pawn(self, index:int, moving_color: str|None = None, rank: int|None = None, file: int|None = None) -> tuple[bool, int]:

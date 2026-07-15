@@ -65,18 +65,20 @@ def main():
     coord = "g6"
     print(f"Is {coord} attacked?: {board.is_attacked(Chessboard.coords_to_index(coord), 'w')}\n")
     
-    test_chess_notation = True
+    test_chess_notation = False
     if test_chess_notation:
-        test_coord = "f5"
+        test_coord = "f4"
         print(f"The board.notation_to_coords('{test_coord}') returns {board.notation_to_coords(test_coord)}")
+        test_coord_2 = "a5"
+        print(f"The board.notation_to_coords('{test_coord_2}') returns {board.notation_to_coords(test_coord_2)}")
 
-    play_game_test = False
+    play_game_test = True
     if play_game_test:
         player1 = HumanPlayer()
         player2 = StockfishPlayer()
         player3 = StockfishPlayer()
         gameboard = board.standard()
-        game = ChessGame(gameboard, player3, player2)
+        game = ChessGame(gameboard, player1, player2)
         game.play_game(flip_on_turn=False)
 
 if __name__ == "__main__":
