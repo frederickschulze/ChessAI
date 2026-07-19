@@ -64,15 +64,13 @@ def main():
     print("\nTesting the is_attacked() function:")
     coord = "g6"
     print(f"Is {coord} attacked?: {board.is_attacked(Chessboard.coords_to_index(coord), 'w')}\n")
-    
-    test_chess_notation = False
-    if test_chess_notation:
-        test_coord = "f4"
-        print(f"The board.notation_to_coords('{test_coord}') returns {board.notation_to_coords(test_coord)}")
-        test_coord_2 = "a5"
-        print(f"The board.notation_to_coords('{test_coord_2}') returns {board.notation_to_coords(test_coord_2)}")
 
-    play_game_test = True
+    test_regex = True
+    print("TESTING REGEX")
+    if test_regex:
+        board.notation_to_coords_regex("O-O")
+
+    play_game_test = False
     if play_game_test:
         player1 = HumanPlayer()
         player2 = StockfishPlayer()
