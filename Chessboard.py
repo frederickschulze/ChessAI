@@ -69,6 +69,20 @@ class Chessboard:
         self.en_passant_square = en_passant_square   
         self.halfmove_clock = halfmove_clock
         self.fullmove_number = fullmove_number
+        self.saved_legal_moves = []
+        self.saved_legal_moves_FEN = ""
+
+    def update_legal_moves(self):
+        self.saved_legal_moves = self.generate_legal_moves()
+        self.saved_legal_moves_FEN = self.generate_FEN()
+
+    def get_legal_moves_efficient(self) -> list[Move]:
+        current_FEN = self.generate_FEN()
+        if self.saved_legal_moves_FEN == current_FEN:
+            return self.saved_legal_moves
+        else:
+            self.update_legal_moves()
+            return self.saved_legal_moves
 
     # makes an empty chessboard
     @classmethod
@@ -160,24 +174,10 @@ class Chessboard:
         FEN = FEN + f" {self.turn} {castling_rights_FEN} {en_passant_FEN} {self.halfmove_clock} {self.fullmove_number}"
         #print(FEN)
         return FEN
-
-
-    def notation_to_coords_regex(self, notation: str) -> str:
-        CHESS_NOTE_REGEX = re.compile(r"^(?:(?P<castle>O-O-O|O-O|0-0-0|0-0)|"
-                              r"(?P<piece>[PNBRQK])?"
-                              r"(?P<origin_file>[a-h])?(?P<origin_rank>[1-8])?"
-                              r"(?P<capture>x)?(?P<destination>[a-h][1-8])"
-                              r"(?P<promotion>=?[QRBN])?(?P<check>[+#])?)$"
-        )
-        stuff = CHESS_NOTE_REGEX.fullmatch(notation)
-        if stuff is None:
-            print("Nothing found")
-        else: 
-            print(stuff.groupdict())
-        return "0"
     
-
-    def is_movable_by_pawn(self, index:int, moving_color: str|None = None, rank: int|None = None, file: int|None = None) -> tuple[bool, int]:
+    # The following functions don't need to check legality per say because they were just used to find the 
+    # starting coord based on an end coord and piece type
+    def is_movable_by_pawn(self, index:int, moving_color: str|None = None, rank: int|None = None, file: int|None = None) -> tuple[bool, list[int]]:
         #check for pawn attacks
         print_p = False
         if moving_color is None: 
@@ -202,11 +202,11 @@ class Chessboard:
                 if abs(attacker_piece) == PAWN and self.get_piece_color(attacker_piece) == moving_color:
                     if print_p: print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, "
                                     f"{self.index_to_coords(valid_index)} attacking me on index {index}, {self.index_to_coords(index)}")
-                    return (True, valid_index)
-        return (False, -1)
+                    return (True, [valid_index])
+        return (False, [-1])
 
-    def is_attacked_by_pawn(self, index:int, attacker_color: str|None = None, rank: int|None = None, file: int|None = None) -> bool:
-           #check for pawn attacks
+    def is_attacked_by_pawn(self, index:int, attacker_color: str|None = None, rank: int|None = None, file: int|None = None) -> tuple[bool, list[int]]:
+        #Checks to see if a square is attacked by pawn regardless of legality/en passant
         print_p = False
         if attacker_color is None: 
             if self.squares[index] != EMPTY:
@@ -217,6 +217,7 @@ class Chessboard:
             rank, file = self.index_to_rankfile(index)
         if attacker_color == BLACK: deltas =[(1, -1), (1, 1)]
         else: deltas = [(-1, -1), (-1, 1)]
+        attacker_indices = []
         for delta in deltas:
             attacker_rank = rank + delta[0]
             attacker_file = file + delta[1]
@@ -226,10 +227,13 @@ class Chessboard:
                 if abs(attacker_piece) == PAWN and self.get_piece_color(attacker_piece) == attacker_color:
                     if print_p: print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, "
                                      f"{self.index_to_coords(valid_index)} attacking me on index {index}, {self.index_to_coords(index)}")
-                    return True
-        return False
+                    attacker_indices.append(valid_index)
+        if attacker_indices:
+            return True, attacker_indices
+        else:
+            return False, attacker_indices
 
-    def is_attacked_by_king(self, index:int, attacker_color: str|None = None, rank: int|None = None, file: int|None = None) -> bool:
+    def is_attacked_by_king(self, index:int, attacker_color: str|None = None, rank: int|None = None, file: int|None = None) -> tuple[bool, list[int]]:
         print_n = False
         if attacker_color is None: 
             if self.squares[index] != EMPTY:
@@ -247,10 +251,10 @@ class Chessboard:
                     if self.get_i_piece_color(valid_index) == attacker_color:
                         if print_n: print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, {self.index_to_coords(valid_index)}"
                                         f"attacking me on index {index}, {self.index_to_coords(index)}")
-                        return True
-        return False
+                        return True, [valid_index]
+        return False, [-1]
 
-    def is_attacked_by_knight(self, index:int, attacker_color: str|None = None, rank: int|None = None, file: int|None = None) -> tuple[bool, int]:
+    def is_attacked_by_knight(self, index:int, attacker_color: str|None = None, rank: int|None = None, file: int|None = None) -> tuple[bool, list[int]]:
         print_n = False
         if attacker_color is None: 
             if self.squares[index] != EMPTY:
@@ -259,6 +263,7 @@ class Chessboard:
                 attacker_color = self.opposite_color(self.turn)
         if rank is None or file is None:
             rank, file = self.index_to_rankfile(index)
+        attacker_indices = []
         for delta in [(2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2), (1, 2)]:
             endrank, endfile = (rank + delta[0], file + delta[1])
             if 1<=endrank<=8 and 1<=endfile<=8: 
@@ -268,10 +273,13 @@ class Chessboard:
                     if self.get_i_piece_color(valid_index) == attacker_color:
                         if print_n: print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, {self.index_to_coords(valid_index)}"
                                         f"attacking me on index {index}, {self.index_to_coords(index)}")
-                        return (True, valid_index)
-        return (False, -1)
+                        attacker_indices.append(valid_index)
+        if attacker_indices:
+            return True, attacker_indices
+        else:
+            return False, attacker_indices
 
-    def is_attacked_by_bishop(self, index:int, attacker_color: str|None = None, rank: int|None = None, file: int|None = None) -> bool:
+    def is_attacked_by_bishop(self, index:int, attacker_color: str|None = None, rank: int|None = None, file: int|None = None) -> tuple[bool, list[int]]:
         print_b = False
         if attacker_color is None: 
             if self.squares[index] != EMPTY:
@@ -281,6 +289,7 @@ class Chessboard:
         if rank is None or file is None:
             rank, file = self.index_to_rankfile(index)
 
+        attacker_indices = []
         for delta in [(1,1), (1,-1), (-1,-1), (-1,1)]:
             cur_rank = rank + delta[0]
             cur_file = file + delta[1]
@@ -295,14 +304,17 @@ class Chessboard:
                     continue
                 elif self.get_i_piece_color(valid_index) == attacker_color:
                     if abs(target_piece) == BISHOP:
+                        attacker_indices.append(valid_index)
                         if print_b: 
                             print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, "
                                 f"{self.index_to_coords(valid_index)} attacking me on index {index}, {self.index_to_coords(index)}")
-                        return True
-                break
-        return False
+                break #if the square is not empty, then break will stop looking in that direction
+        if attacker_indices:
+            return True, attacker_indices
+        else:
+            return False, attacker_indices
     
-    def is_attacked_by_rook(self, index:int, attacker_color: str|None = None, rank: int|None = None, file: int|None = None) -> bool:
+    def is_attacked_by_rook(self, index:int, attacker_color: str|None = None, rank: int|None = None, file: int|None = None) -> tuple[bool, list[int]]:
         print_r = False
         if attacker_color is None: 
             if self.squares[index] != EMPTY:
@@ -312,6 +324,7 @@ class Chessboard:
         if rank is None or file is None:
             rank, file = self.index_to_rankfile(index)
 
+        attacker_indices = []
         for delta in [(0,1), (1,0), (0,-1), (-1,0)]:
             cur_rank = rank + delta[0]
             cur_file = file + delta[1]
@@ -325,14 +338,18 @@ class Chessboard:
                     continue
                 elif self.get_i_piece_color(valid_index) == attacker_color:
                     if abs(target_piece) == ROOK:
+                        attacker_indices.append(valid_index)
                         if print_r: 
                             print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, "
                                 f"{self.index_to_coords(valid_index)} attacking me on index {index}, {self.index_to_coords(index)}")
-                        return True
+                        
                 break #if it's not empty and not a valid enemy piece
-        return False
+        if attacker_indices:
+            return True, attacker_indices
+        else:
+            return False, attacker_indices
     
-    def is_attacked_by_queen(self, index:int, attacker_color: str|None = None, rank: int|None = None, file: int|None = None) -> bool:
+    def is_attacked_by_queen(self, index:int, attacker_color: str|None = None, rank: int|None = None, file: int|None = None) -> tuple[bool, list[int]]:
         print_q = False
         if attacker_color is None: 
             if self.squares[index] != EMPTY:
@@ -342,6 +359,7 @@ class Chessboard:
         if rank is None or file is None:
             rank, file = self.index_to_rankfile(index)
 
+        attacker_indices = []
         for delta in [(1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0), (-1, 1), (0, 1)]:
             cur_rank = rank + delta[0]
             cur_file = file + delta[1]
@@ -355,12 +373,15 @@ class Chessboard:
                     continue
                 elif self.get_i_piece_color(valid_index) == attacker_color:
                     if abs(target_piece) == QUEEN:
+                        attacker_indices.append(valid_index)
                         if print_q: 
                             print(f"There is a {self.piece_to_char(self.squares[valid_index])} on {valid_index}, "
                                 f"{self.index_to_coords(valid_index)} attacking me on index {index}, {self.index_to_coords(index)}")
-                        return True
                 break #if it's not empty and not a valid enemy piece
-        return False
+        if attacker_indices:
+            return True, attacker_indices
+        else:
+            return False, attacker_indices
 
     def is_in_check(self, king_color) -> bool:
         if king_color == WHITE: 
@@ -700,17 +721,16 @@ class Chessboard:
                         f"{self.index_to_coords(move[0])} to {self.index_to_coords(move[1])} with move type: {move[2]}")
         return valid_moves
       
-
-
-
-    def coords_to_Move(self, coords: str):
+    def coords_to_Move(self, coords: str) -> Move:
+        # thought i needed this for make_move_coords 
+        # but then I ended up converting coords to ints
         if len(coords) not in (4,5): raise ValueError("Invlaid coords received")
         first_coord = coords[0:2]
         second_coord = coords[2:4]
         start_i = self.coords_to_index(first_coord)
         end_i = self.coords_to_index(second_coord)
         if len(coords) == 4: #
-            for move in self.generate_legal_moves():
+            for move in self.get_legal_moves_efficient():
                 if move.start == start_i and move.end == end_i:
                     if move.flag == PROMOTION:
                         raise ValueError("No promotion provided ")
@@ -721,7 +741,7 @@ class Chessboard:
                 raise ValueError("Invalid promotion piece received")
             # PIECE_TO_CHAR = ".PNBRQK"
             promotion_piece_int = PIECE_TO_CHAR.index(promotion_piece_char.upper())
-            for move in self.generate_legal_moves(): #will need to be legal moves later
+            for move in self.get_legal_moves_efficient(): 
                 if move.start == start_i and move.end == end_i:
                     if move.flag == PROMOTION:
                         if promotion_piece_int == move.promotion: 
@@ -731,7 +751,77 @@ class Chessboard:
         self.print_board()
         raise ValueError(f"No legal move was found for {coords}.")
 
+    
+    def notation_to_coords_regex(self, notation: str):
+        debug_print = True
+        notation = notation.strip().replace(" ", "")
+        CHESS_NOTE_REGEX = re.compile(r"^(?:(?P<castle>O-O-O|O-O|0-0-0|0-0)|"
+                              r"(?P<piece>[NBRQK])?"
+                              r"(?P<origin_file>[a-h])?(?P<origin_rank>[1-8])?"
+                              r"(?P<capture>x)?(?P<destination>[a-h][1-8])"
+                              r"(?P<promotion>=?[QRBN])?(?P<check>[+#])?)$", 
+                              re.IGNORECASE
+        )
+
+        try: match = CHESS_NOTE_REGEX.fullmatch(notation)
+        except Exception as error: 
+            raise ValueError("Was unable to regex parse your notation") from error
+        if match is None: raise ValueError("RegEx was unable to parse your move")
+        else: 
+            move_deets = match.groupdict(); 
+            if debug_print: print(move_deets)
+
+        #Castle case
+        if move_deets["castle"] is not None:
+            castle_input = move_deets["castle"]
+            castle_input = castle_input.replace("0", "O")
+            if self.turn == WHITE:
+                start_coord = "e1"
+                if castle_input == "O-O":
+                    end_coord = "g1"
+                    return start_coord + end_coord
+                elif castle_input == "O-O-O":
+                    end_coord = "c1"
+                    return start_coord + end_coord
+            elif self.turn == BLACK: 
+                start_coord = "e8"
+                if castle_input == "O-O":
+                    end_coord = "g8"
+                    return start_coord + end_coord
+                elif castle_input == "O-O-O":
+                    end_coord = "c8"
+                    return start_coord + end_coord
+            raise ValueError("Someone conversion to coords failed after regex")
+        
+        #Non-Castle case:
+        final_coord = move_deets["destination"]
+        final_index = self.coords_to_index(final_coord)
+        can_move, mover_indices = False, [-1]
+        if move_deets["piece"] is None:
+            can_move, mover_indices = self.is_attacked_by_pawn(final_index)
+        else:
+            piece = move_deets["piece"]
+            if piece == "N": can_move, mover_indices = self.is_attacked_by_knight(final_index)
+            elif piece == "B": can_move, mover_indices = self.is_attacked_by_bishop(final_index)
+            elif piece == "R": can_move, mover_indices = self.is_attacked_by_rook(final_index)
+            elif piece == "Q": can_move, mover_indices = self.is_attacked_by_queen(final_index)
+            elif piece == "K": can_move, mover_indices = self.is_attacked_by_king(final_index)
+        
+        if can_move == False: raise ValueError("No valid moving piece found of given type")
+        else: #can_move = True
+            if len(mover_indices) == 0: raise ValueError("Program thinks movable but no movable piece found")
+            if len(mover_indices) == 1:
+                starting_index = mover_indices[0]
+                start_coord = self.index_to_coords(starting_index)
+                return start_coord + final_coord
+            elif len(mover_indices) > 1:
+                origin_file =  move_deets["origin_file"]
+                origin_rank = move_deets["origin_rank"]
+                if origin_file == None and origin_rank == None:
+                    raise ValueError("No disambiguation rank or file provided for multi-valid move") 
+    
     def make_move_coords(self, coords: str):
+        # Calls make_move_ints()
         if len(coords) != 4 and len(coords) !=5: raise ValueError("Invlaid coords received")
         first_coord = coords[0:2]
         second_coord = coords[2:4]
@@ -746,9 +836,14 @@ class Chessboard:
             self.make_move_ints(first_index, second_index, promotion_piece_int)
         else:  self.make_move_ints(first_index, second_index)
             
+    def find_legal_move_ints(self):
+        raise NotImplementedError
+
     def make_move_ints(self, start_i: int, end_i: int, promotion_piece: int = -1):
+        # Expensive: calls generate_legal_moves. Maybe make a way to not need this every time
+        # Calls make_move()
         print_moves = False
-        for move in self.generate_legal_moves(): #will need to be legal moves later
+        for move in self.get_legal_moves_efficient(): 
             if print_moves: print(move)
             if move.start == start_i and move.end == end_i:
                 if move.flag == PROMOTION:

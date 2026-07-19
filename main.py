@@ -68,7 +68,7 @@ def main():
     test_regex = True
     print("TESTING REGEX")
     if test_regex:
-        board.notation_to_coords_regex("O-O")
+        board.notation_to_coords_regex("nfe4")
 
     play_game_test = False
     if play_game_test:
