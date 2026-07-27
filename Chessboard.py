@@ -3,8 +3,6 @@ import numpy as np
 from typing import NamedTuple
 import re
 
-
-
 #Player's turn constants
 WHITE = 'w'
 BLACK = 'b'
@@ -64,25 +62,33 @@ class Chessboard:
             raise ValueError("The requested layout does not have 64 squares.")
         else:
             self.squares = layout.copy()
+
+        #starter values
         self.turn = turn
         self.castling_rights = castling_rights
         self.en_passant_square = en_passant_square   
         self.halfmove_clock = halfmove_clock
         self.fullmove_number = fullmove_number
-        self.saved_legal_moves = []
-        self.saved_legal_moves_FEN = ""
 
-    def update_legal_moves(self):
+        #gets assigned later by update_legal_moves
+        self.saved_legal_moves: list[Move] = []
+        self.saved_legal_moves_FEN: str = ""
+
+    def update_legal_moves(self) -> list[Move]:
         self.saved_legal_moves = self.generate_legal_moves()
         self.saved_legal_moves_FEN = self.generate_FEN()
+        return self.saved_legal_moves
 
-    def get_legal_moves_efficient(self) -> list[Move]:
+    # for draws - 3 fold reptition
+    # if any position is repeated 3 times, the result is a draw
+    # 
+
+    def get_legal_moves_fast(self) -> list[Move]:
         current_FEN = self.generate_FEN()
         if self.saved_legal_moves_FEN == current_FEN:
             return self.saved_legal_moves
         else:
-            self.update_legal_moves()
-            return self.saved_legal_moves
+            return self.update_legal_moves()
 
     # makes an empty chessboard
     @classmethod
@@ -730,7 +736,7 @@ class Chessboard:
         start_i = self.coords_to_index(first_coord)
         end_i = self.coords_to_index(second_coord)
         if len(coords) == 4: #
-            for move in self.get_legal_moves_efficient():
+            for move in self.get_legal_moves_fast():
                 if move.start == start_i and move.end == end_i:
                     if move.flag == PROMOTION:
                         raise ValueError("No promotion provided ")
@@ -741,7 +747,7 @@ class Chessboard:
                 raise ValueError("Invalid promotion piece received")
             # PIECE_TO_CHAR = ".PNBRQK"
             promotion_piece_int = PIECE_TO_CHAR.index(promotion_piece_char.upper())
-            for move in self.get_legal_moves_efficient(): 
+            for move in self.get_legal_moves_fast(): 
                 if move.start == start_i and move.end == end_i:
                     if move.flag == PROMOTION:
                         if promotion_piece_int == move.promotion: 
@@ -751,8 +757,7 @@ class Chessboard:
         self.print_board()
         raise ValueError(f"No legal move was found for {coords}.")
 
-    
-    def notation_to_coords_regex(self, notation: str):
+    def notation_to_UCI_regex(self, notation: str):
         debug_print = True
         notation = notation.strip().replace(" ", "")
         CHESS_NOTE_REGEX = re.compile(r"^(?:(?P<castle>O-O-O|O-O|0-0-0|0-0)|"
@@ -770,11 +775,12 @@ class Chessboard:
         else: 
             move_deets = match.groupdict(); 
             if debug_print: print(move_deets)
-
-        #Castle case
+        
+        #Handling the castling case
         if move_deets["castle"] is not None:
             castle_input = move_deets["castle"]
             castle_input = castle_input.replace("0", "O")
+            castle_input = castle_input.upper()
             if self.turn == WHITE:
                 start_coord = "e1"
                 if castle_input == "O-O":
@@ -793,23 +799,31 @@ class Chessboard:
                     return start_coord + end_coord
             raise ValueError("Someone conversion to coords failed after regex")
         
-        #Non-Castle case:
+        #Non-Castling case:
+        #correcting capilzation first:
+        if move_deets["piece"]: move_deets["piece"] = move_deets["piece"].upper()
+        if move_deets["origin_file"]: move_deets["origin_file"] = move_deets["origin_file"].lower()
+        if move_deets["destination"]: move_deets["destination"] = move_deets["destination"].lower()
+        if move_deets["promotion"]: move_deets["promotion"] = move_deets["promotion"].lower()
+                      
         final_coord = move_deets["destination"]
         final_index = self.coords_to_index(final_coord)
-        can_move, mover_indices = False, [-1]
+        can_move, mover_indices = False, [-1] #initialize to safe values
+
+        piece = move_deets["piece"]
         if move_deets["piece"] is None:
             can_move, mover_indices = self.is_attacked_by_pawn(final_index)
-        else:
-            piece = move_deets["piece"]
-            if piece == "N": can_move, mover_indices = self.is_attacked_by_knight(final_index)
+        else:   
+            if piece == "N": can_move, mover_indices = self.is_attacked_by_knight(final_index); print("KNIGHT")
             elif piece == "B": can_move, mover_indices = self.is_attacked_by_bishop(final_index)
             elif piece == "R": can_move, mover_indices = self.is_attacked_by_rook(final_index)
             elif piece == "Q": can_move, mover_indices = self.is_attacked_by_queen(final_index)
             elif piece == "K": can_move, mover_indices = self.is_attacked_by_king(final_index)
+            else: raise ValueError("no valid piece function was called")
         
-        if can_move == False: raise ValueError("No valid moving piece found of given type")
+        if can_move == False: raise ValueError(f"No {piece} piece found that can move to {final_coord}")
         else: #can_move = True
-            if len(mover_indices) == 0: raise ValueError("Program thinks movable but no movable piece found")
+            if len(mover_indices) == 0: raise ValueError("Program thinks movable but no movable indices found")
             if len(mover_indices) == 1:
                 starting_index = mover_indices[0]
                 start_coord = self.index_to_coords(starting_index)
@@ -843,7 +857,7 @@ class Chessboard:
         # Expensive: calls generate_legal_moves. Maybe make a way to not need this every time
         # Calls make_move()
         print_moves = False
-        for move in self.get_legal_moves_efficient(): 
+        for move in self.get_legal_moves_fast(): 
             if print_moves: print(move)
             if move.start == start_i and move.end == end_i:
                 if move.flag == PROMOTION:

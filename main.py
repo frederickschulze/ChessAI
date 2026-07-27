@@ -68,7 +68,9 @@ def main():
     test_regex = True
     print("TESTING REGEX")
     if test_regex:
-        board.notation_to_coords_regex("nfe4")
+        board.print_board(letters = True)
+        UCI_output = board.notation_to_UCI_regex("ng5")
+        print(UCI_output)
 
     play_game_test = False
     if play_game_test:
